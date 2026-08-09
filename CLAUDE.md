@@ -120,6 +120,60 @@ front.
   does the right thing with it — that's its own well-established
   responsibility.
 
+## Schema-flexibility testing
+
+Before building any "install into a custom schema" test dimension, check
+the extension's `.control` file for `schema=` (not `relocatable=`) —
+conflating the two has already cost real work in this org (a full
+schema-targeting test feature was built for cat_tools before realizing
+its `.control` file pins `schema = 'cat_tools'` with `relocatable =
+false`, so it can never actually be installed into a different schema).
+
+- `schema=` (if set) fixes the install schema unconditionally — no
+  `SCHEMA` clause or `search_path` override changes it. `relocatable`
+  only governs whether an *already-installed* extension can be moved
+  later via `ALTER EXTENSION ... SET SCHEMA`. An extension can be "not
+  relocatable" and still fully install-schema-flexible; these are
+  independent facts, easy to conflate.
+- Don't trust the absence of `schema=` alone either — some extensions
+  omit it but hardcode their own schema name directly in the install SQL
+  (`CREATE SCHEMA foo` instead of `@extschema@`), making them just as
+  fixed in practice despite the control file looking flexible. Grep the
+  install SQL for `@extschema@` usage before concluding an extension is
+  genuinely schema-flexible.
+- A schema-pinned extension has no schema-flexibility axis to test at
+  all — don't build one.
+
+If an extension genuinely is schema-flexible, the property actually
+worth proving is that none of its own SQL resolves by accident via
+`search_path` — every reference to its own objects should be fully
+schema-qualified:
+
+- Proving that needs two things together, not either alone: at least one
+  tested leg with the extension's own schema verifiably ABSENT from
+  `search_path` (installing into two schemas that are both still on
+  `search_path` proves nothing — an extension full of unqualified,
+  resolve-by-accident references would pass every such leg too, since
+  the accident that makes it work is present everywhere it's exercised),
+  and at least one non-empty leg's schema name should require SQL
+  identifier quoting (mixed case, or a space) so an unquoted reference
+  doesn't silently fold to lowercase and re-test the same schema twice.
+- Target the schema with `CREATE EXTENSION ... SCHEMA <name>`, never by
+  mutating `search_path` first — mutating it first would let the install
+  succeed via a coincidentally-arranged path, masking exactly the kind of
+  bug this testing exists to catch.
+- The empty/no-target-schema leg's ambient landing schema isn't always
+  `public` — don't hardcode that assumption into an assertion; discover
+  it dynamically (e.g. via `current_schemas()`/`pg_extension`) so the
+  test doesn't silently break if something upstream of it changes
+  `search_path`.
+
+This mirrors `TEST_LOAD_SOURCE`'s existing GUC-propagation pattern well —
+a `TEST_SCHEMA` switch through the same `PGOPTIONS`/`deps.sql` mechanism
+is a natural fit when a repo already has that infrastructure.
+Postgres-Extensions/extension_tools and Postgres-Extensions/pg_count_nulls
+both have working implementations of this pattern to reference.
+
 ## Executable bit safety
 
 `sed -i` (and similar in-place file-rewriting tools) can silently drop a
