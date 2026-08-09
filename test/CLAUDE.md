@@ -39,10 +39,11 @@ the extension's own code works when its schema is specifically
 - Set `search_path` for the test session to something that does not
   contain the extension's schema (e.g. a scratch schema, or `pg_catalog`
   alone) before running assertions. If your repo's build system is
-  pgxntool, its `test/install` feature (see pgxntool's own docs) — a set
-  of files that run once, committed, before the rest of the suite in the
-  same `pg_regress` invocation — is the natural place to put this: set it
-  there and it stays set for every test file that follows.
+  pgxntool, its `test/install` feature (`README.asc`) — files that run
+  once, committed, before the rest of the suite in the same `pg_regress`
+  invocation — is the natural place to put this: set it there and it
+  stays set for every test file that follows. There's more info about
+  testing in pgxntool's own `CLAUDE.md`.
 - Don't assume the ambient/default search_path already excludes the
   extension's schema — check what it actually resolves to
   (`current_schemas(false)` or similar) rather than assuming `public` or
