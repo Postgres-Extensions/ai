@@ -1,0 +1,203 @@
+# PR and commit conventions
+
+Conventions for opening, describing, and pushing PRs across
+Postgres-Extensions repos. A few entries note a narrow, repo-specific
+exception (release-only CI-trigger PRs, `gh stack` quirks) rather than
+stating the general rule as if it had none.
+
+**Be concise, most important first.** State a change once, in the fewest
+words that convey it, ordered by decreasing importance. This isn't just
+style: the top of a description should be usable as-is for a squash-merge
+commit message.
+
+## Merge authority
+
+- Never merge a PR — the repo owner does, personally, always.
+- Never push directly to a default branch (`master`/`main`); everything
+  goes through a PR.
+- Never apply or remove a maintainer-gated label, even with permission to —
+  flag it and let a human apply it.
+- Never delete a branch without explicit user approval (`git push origin
+  --delete`, `git branch -d`/`-D`) — ask first.
+- Exception seen in practice: a release workflow's CI-trigger-only empty PR
+  exists solely to run CI and is closed once CI passes, never merged.
+
+## Fork vs. direct-to-upstream
+
+- Default: PR from your fork to upstream's default branch. This is the
+  path a real external contributor uses, so it exercises fork-headed-PR CI
+  behavior (trust gates, checkout guards) a same-repo PR wouldn't.
+- Exception: a `gh stack`-tracked series. Stack tooling assumes same-repo
+  branches and can silently rewrite a PR's base against a fork. Use
+  direct-to-upstream branches for a stack, and say why in the PR body.
+- Never open a fork-to-fork PR (both base and head on your fork) — to stack
+  on other work, push the base branch upstream instead.
+- Push feature-branch commits to your fork, not upstream — pushing to
+  upstream for a fork-headed PR creates a stray branch and doesn't update
+  the PR.
+- `upstream` is only for the default branch, release tags, and branches
+  created directly there.
+- CI for a fork-headed PR runs under the base repo's Actions — monitor
+  there, not the fork's.
+
+## PR titles
+
+- No `"Phase N:"` or similar prefixes.
+- No cross-repo references (e.g. a linked companion-repo PR) — those go in
+  the body. The title stands alone.
+- Just enough to recognize the PR when scanning history, not a summary of
+  every changed line.
+- `CI: ` prefix (capital, colon, space) only when the diff is confined
+  entirely to files that don't affect the actual code:
+  - Touching SQL/source, a `.control` file, or anything shipped/behavioral
+    disqualifies it, full stop. Unsure → don't apply the prefix.
+  - `test/` counts as NOT CI-only by default.
+  - CI-*motivated* but touching a real code/test file (a `bin/` script the
+    workflow calls, a `Makefile` hook, a submodule bump) is NOT CI-only.
+  - Non-code files outside `.github/workflows/` qualify too — `.gitignore`,
+    `CLAUDE.md`, pure docs.
+  - Verify against the actual file list (`gh pr view <n> --json files`)
+    before applying — don't guess from the title or memory.
+
+## PR descriptions
+
+- Describe the diff as it stands right now — pull the current file
+  list/diff before writing. PRs get rebased and cascaded through; a
+  description rots faster than expected.
+- State what the PR does, not how you got there — no "first I tried X,
+  then found Y" narrative.
+- State the actual, verified reason for a change. If the description
+  asserts a fact, verify it directly — don't state it from memory.
+- Strip historical narrative once it's not load-bearing — no rebase notes,
+  no "recreated from #26 because...", no "supersedes #15/#21/#23" story.
+- No local-only file paths (`~/foo.md`, `/root/...`) — nothing outside that
+  session can resolve them. Describe the change itself, or point at a code
+  comment anyone can check.
+- No "Test plan" section by default — rely on CI. Add one only when
+  something needs verification CI can't cover.
+- A forward-looking coordination note to another PR (e.g. "whichever
+  merges second needs to grep for X") is fine to keep. Anything else: does
+  removing it make the PR harder to review right now? If not, cut it.
+- If merging doesn't fully finish the job — some step must happen live and
+  can't be expressed as a diff — put a bolded line at the top of the
+  description calling that out.
+
+## Scope: one PR, one concern
+
+- Split unrelated changes even if they touch a file a PR is already
+  changing — a functional change from doc/comment cleanup, one fix from
+  another. When in doubt, ask rather than defaulting to "it's already in
+  the diff."
+- Grey area: a trivial, minor fix *can* ride along in an otherwise-related
+  PR if it makes sense. Test: would anyone need to read about this specific
+  change in git history? If no, bundling is fine — every commit to `main`
+  has a cost, and not every fix needs its own PR. Either way, check first
+  whether an open PR or issue already covers it.
+- If a newly found fix touches the same file/area an already-open PR is
+  actively changing, fold it in rather than opening a new PR for the same
+  file.
+- If several small, separate open PRs address the same narrow concern,
+  consolidate into one and close the others as superseded (comment
+  pointing at the survivor).
+- After combining two PRs' work, update the surviving PR's
+  title/description to describe the combined scope, and say in the closing
+  comment on the superseded PR that it was folded in, with the commit SHA.
+- Ask what order split PRs should merge in if it's not obvious.
+
+## Before pushing: verify for real
+
+- Run the actual test/lint suite, not a dry run (a dry-run flag can be
+  misleading) — don't trust a prior session/agent's claim that it passed.
+- Never hand-edit generated/expected-output files — regenerate via the
+  project's own tooling. If that tooling refuses over an already-reviewed
+  diff, look for a documented bypass — never as a way to skip looking at
+  the diff.
+- Check the PR's actual head-repo owner before pushing a fix — pushing
+  only to `upstream` when the head is a fork produces a false "still not
+  fixed" result.
+- After a squash-merge upstream of your branch, verify ancestry directly
+  (`git merge-base --is-ancestor <branch> <new-base>`) — cached
+  mergeable/merge-state fields lag.
+- `--force-with-lease`, never a bare `--force`, after a rebase.
+
+## Rebasing a PR stack
+
+- Prefer `git rebase --onto <new-base> <old-base-tip>` over a plain
+  rebase — a plain rebase can replay huge amounts of superseded history.
+- If the base's history was rewritten (not just advanced), diff your old
+  known-good tip against the new tip first. Empty diff → reset to the new
+  tip and cherry-pick your unique commits, rather than fighting a rebase.
+- Rerun the real test suite and lint after, before pushing.
+- Under a tight runner budget, don't cascade a rebase across a whole stack
+  for a cosmetic fix — batch it into the next substantive push, and say so.
+
+## Force-push / history rewriting
+
+- Never force-push a PR branch without asking first and getting a real
+  reply — not even your own draft PR, not even when a task seems to
+  require it. A task that implies a rewrite is a signal to ask, not a
+  substitute for the user saying yes.
+- Need to correct a pushed commit? Add a new commit or ask how to
+  restructure — don't default to amend+force-push.
+- Any exception must be pre-authorized by name for a specific, narrowly
+  gated task — never inferred.
+- Never delegate force-push, default-branch pushes, or merges to a
+  subagent, even with "check in first" guardrails — these aren't cleanly
+  reversible and subagents don't reliably hold the line when a shortcut is
+  tempting. Have it report back; the main session does the irreversible
+  step.
+
+## Closing issues
+
+- One `Fixes #N` / `Closes #N` / `Resolves #N` per line — never
+  comma-combine. Auto-close only reads the first number and silently drops
+  the rest.
+- Check for duplicates before closing — closing only one of a duplicate
+  pair leaves the other open.
+- If a project maintains a per-release "issues fixed" line, update it
+  per-commit, not just at release time.
+
+## Commit messages
+
+- Specific about outcomes, not vague ("Fix race condition where `X` fails
+  due to `Y`", not "Fix various timing issues").
+- Don't narrate the journey — end state and why it matters, not how you
+  got there. Don't over-explain the obvious.
+- Backticks around code identifiers/commands.
+- Commit via heredoc, never `-i` flags.
+- `Co-Authored-By: Claude <noreply@anthropic.com>` is fine; no "Generated
+  with Claude Code" line.
+- Change spans two coupled repos (e.g. a library and its test repo): commit
+  the primary repo first, capture its hash, then commit the companion repo
+  referencing it. Prefer a PR URL over a bare hash once it exists — a URL
+  survives a rebase/amend; a hash goes stale silently.
+
+## Multi-session / state-drift hygiene
+
+- Before editing anything already live (a PR's title/description/base/
+  branch, a file, a label), check its current actual state first — never
+  rely on what an earlier turn, session, or agent assumed. State drifts:
+  concurrent merges, mid-session convention changes, a fresh agent with no
+  memory of earlier decisions.
+- When briefing a subagent for PR work, state current conventions
+  explicitly in its prompt (naming rules, branch structure, decisions
+  already made) — don't assume it'll discover or preserve them. Verify its
+  output against actual current state after, not just its own summary.
+- Asked to act on a PR this session didn't open and isn't already working
+  on? Confirm with the user first — concurrent sessions make it easy to
+  grab the wrong one.
+- Before branching off a default branch, fetch and confirm local isn't
+  behind remote (compare SHAs) — a stale base risks redoing fixed work.
+
+## Isolation
+
+Use a worktree or fresh clone for edits, not the shared checkout you
+started in — unless told explicitly to work there.
+
+## Follow-ups and reminders
+
+- A required follow-up human action (apply a gated label, merge, run
+  something manually) goes as a short reminder at the end of the response,
+  not buried mid-message.
+- A question mixed in with other tasks: answer it inline where relevant,
+  and repeat it briefly at the end so it isn't lost.
