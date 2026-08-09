@@ -79,10 +79,3 @@ a bare `#28` is fine — less noise, less likely to need chasing down. When
 in doubt, use the full URL. This rule is about committed files only —
 referencing by number is always fine in GitHub-native text (PR/issue
 titles, descriptions, review comments).
-
-## Terminology: upgrade vs. update
-
-"Upgrade" refers to a PostgreSQL cluster (`pg_upgrade`); "update" refers
-to an extension (`ALTER EXTENSION ... UPDATE`). An extension's
-version-to-version scripts are "update scripts" — never "upgrade
-scripts."

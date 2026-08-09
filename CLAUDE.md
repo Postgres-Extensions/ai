@@ -16,12 +16,22 @@ git clone https://github.com/Postgres-Extensions/ai.git ../ai
 
 (run from the current repo's root, so `ai/` lands as a sibling: `../ai/`)
 
+## Keep ../ai/ up to date
+
+At the start of every session, and at most once again per day within a
+long-running session, update the local `../ai/` checkout so the
+conventions in it can't silently go stale:
+
+```bash
+git -C ../ai pull --ff-only
+```
+
 ## Related docs in this repo
 
 - [PR.md](./PR.md) — PR, commit, and git-process conventions (merge
   authority, fork workflow, force-push policy, etc.)
-- [CODE_STYLE.md](./CODE_STYLE.md) — comment conventions, PR/issue
-  reference format, terminology
+- [CODE_STYLE.md](./CODE_STYLE.md) — comment conventions and PR/issue
+  reference format
 
 ## GitHub CI: monitor after every push
 
@@ -84,13 +94,17 @@ check whether the executable bit survived. For a tracked file, `git diff
 100644` line means it needs `chmod +x` restored before doing anything
 else with it.
 
-## Shell scripts
+## Scripts
 
-- Use `#!/usr/bin/env bash`, never `#!/bin/bash` — the latter hardcodes
-  the path and fails on systems where bash lives elsewhere (some BSDs,
-  NixOS, Homebrew on macOS); `env bash` finds it on `PATH`.
-- Never use `echo ""` to print a blank line; just use `echo` with no
-  arguments.
+- Use `#!/usr/bin/env <interpreter>` (e.g. `#!/usr/bin/env bash`,
+  `#!/usr/bin/env python3`) for any executable script, never a hardcoded
+  interpreter path (`#!/bin/bash`, `#!/usr/bin/python3`) — this applies to
+  every interpreted language a script might be written in, not just
+  shell. A hardcoded path fails on systems where that interpreter lives
+  elsewhere (some BSDs, NixOS, Homebrew on macOS); `env <interpreter>`
+  finds it on `PATH`.
+- In shell scripts specifically: never use `echo ""` to print a blank
+  line; just use `echo` with no arguments.
 
 ## Test failures are never acceptable
 
@@ -125,28 +139,20 @@ is one good reason to put a dimension in CI instead, not the only one.
 
 ### Version-specific SQL files
 
-For extensions built on pgxntool's versioned-SQL generation:
+pgxntool's own `README.asc` ("Version-Specific SQL Files") already covers
+tracking version-specific install/update scripts by default, why, when
+it's OK to skip one, and why you must never hand-edit one that's no
+longer current — read that rather than re-deriving it here.
 
-- Version-specific install scripts (`sql/<ext>--<version>.sql[.in]`) are
-  tracked by default — they enable update testing (install an old
-  version, `ALTER EXTENSION UPDATE`, verify) and let CI catch a
-  PostgreSQL major version that unpredictably breaks installing an
-  *older* extension version. See
-  https://github.com/Postgres-Extensions/pgxntool/issues/51.
-- Update scripts (`sql/<ext>--<v1>--<v2>.sql[.in]`) are essential to the
-  update path and have no substitute — always track them.
-- Version-specific files must never be edited manually — edit the base
-  source and regenerate.
-- A version that changes little and ships no nontrivial update-path
-  machinery may omit its generated install script (regenerable from
-  source at build time, little test-coverage value) — but track it
-  whenever the version carries meaningful changes or a nontrivial update
-  script.
-- A pseudo-version a repo uses to mean "current, between releases" (e.g.
-  a `stable` default_version) is the opposite case from a
-  normally-tracked-but-occasionally-skipped version: it would be
-  regenerated and re-diffed on every source edit if tracked, for zero
-  test-coverage value. Gitignore it instead.
+One case its docs don't yet cover: a pseudo-version a repo uses to mean
+"current, between releases" (e.g. a `stable` default_version) is the
+*opposite* of the skipped-version case they document — it's permanently
+current, not transiently left behind, so it would be regenerated and
+re-diffed on every single source edit if tracked, for zero
+test-coverage value. Gitignore it instead of the one-time `rm` their docs
+recommend for a skipped version. Tracked as
+https://github.com/Postgres-Extensions/pgxntool/issues/103 for pgxntool's
+own docs to absorb; until then, this is the canonical statement of it.
 
 ### PostgreSQL version support policy
 
@@ -157,3 +163,10 @@ update script is allowed to do (e.g. a statement that can't run inside an
 extension update script before some version), that's a real reason to
 drop support for installing on the affected older majors, not just
 document around it.
+
+### Terminology: upgrade vs. update
+
+"Upgrade" refers to a PostgreSQL cluster (`pg_upgrade`); "update" refers
+to an extension (`ALTER EXTENSION ... UPDATE`). An extension's
+version-to-version scripts are "update scripts" — never "upgrade
+scripts."
