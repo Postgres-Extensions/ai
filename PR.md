@@ -61,6 +61,15 @@ commit message.
 
 ## PR descriptions
 
+- The opening must work standalone as the commit message (see above): no
+  leading header/title line — the PR title is already the subject — and
+  no marker delimiting "the commit message part" from "the rest." Just
+  let the opening carry its own weight, with any extra context following
+  after it.
+- Lead the opening with the substantive change and why. Keep incidental
+  changes (minor doc tweaks, dependency/action version bumps, small
+  cleanups) OUT of it — put them lower or omit them; the diff carries
+  those details for anyone who wants them.
 - Describe the diff as it stands right now — pull the current file
   list/diff before writing. PRs get rebased and cascaded through; a
   description rots faster than expected.
@@ -73,6 +82,11 @@ commit message.
 - No local-only file paths (`~/foo.md`, `/root/...`) — nothing outside that
   session can resolve them. Describe the change itself, or point at a code
   comment anyone can check.
+- Length past the opening is fine — backstory and detail are often worth
+  keeping. If there's enough of it to justify the length, give it real
+  structure (headers, bullet lists, separate sections), not one
+  undifferentiated block of prose — but structure isn't a substitute for
+  cutting length that doesn't earn its place.
 - No "Test plan" section by default — rely on CI. Add one only when
   something needs verification CI can't cover.
 - A forward-looking coordination note to another PR (e.g. "whichever
