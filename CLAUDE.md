@@ -18,13 +18,19 @@ git clone https://github.com/Postgres-Extensions/ai.git ../ai
 
 ## Keep ../ai/ up to date
 
-At the start of every session, and at most once again per day within a
-long-running session, update the local `../ai/` checkout so the
-conventions in it can't silently go stale:
+Make sure the local `../ai/` checkout isn't stale: refresh it at the
+start of every session, and again at least once per hour during a
+long-running one.
 
 ```bash
 git -C ../ai pull --ff-only
 ```
+
+Run it on that cadence even if you're not sure whether it's "due" —
+`../ai/` may be a checkout shared with other concurrent agents/sessions,
+so another agent may have already pulled more recently than this session
+remembers. The command is a no-op when already current, so there's no
+need to coordinate or track staleness precisely — just run it.
 
 ## Related docs in this repo
 
