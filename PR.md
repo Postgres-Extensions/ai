@@ -60,12 +60,12 @@ conflate them (see "A PR is not a branch" above).**
   (an old pgxntool-version bump, a since-superseded test-foundation PR)
   ended up at fork-owner URLs instead of upstream's — invisible from
   upstream's own PR list, forgotten for weeks.
-- Find a PR at a fork-owner URL? Don't just close it. Investigate first:
-  check whether the same work already exists elsewhere (merged to a
-  default branch, or covered by an equivalent open PR against upstream).
-  Report what you find to the user. Only close it once its content is
-  confirmed redundant — otherwise redo it correctly-targeted at upstream
-  so the work isn't lost.
+- Find a PR at a fork-owner URL? That's already someone's mistake — don't
+  compound it by acting unilaterally. Investigate whether the same work
+  already exists elsewhere (merged to a default branch, or covered by an
+  equivalent open PR against upstream), report what you find to the user,
+  then stop. Don't close it, don't redo it, don't take any other action —
+  let the user decide what happens to it.
 - Periodically check `gh pr list --repo <fork>` for anything left behind
   by this mistake.
 - Exception: a `gh stack`-tracked series needs the branch itself upstream
@@ -83,9 +83,9 @@ conflate them (see "A PR is not a branch" above).**
   trigger, a checkout step needing `allow-unsafe-pr-checkout`, etc. There's
   no universal behavior difference; check the specific workflow.
 - A PR always runs its CI under whichever repo it actually lives in (see
-  "A PR is not a branch" above) — which, per the rule above, is always
-  upstream. Monitor CI there; there's nothing to check on the fork, since
-  the PR was never there to begin with.
+  "A PR is not a branch" above) — which, per the rule above, should always
+  be upstream. Monitor CI there; there's nothing to check on the fork,
+  since the PR was never there to begin with.
 
 ## PR titles
 
