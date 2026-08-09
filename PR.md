@@ -74,11 +74,7 @@ commit message.
   session can resolve them. Describe the change itself, or point at a code
   comment anyone can check.
 - Do not hard-wrap paragraphs at a fixed column — write each paragraph as
-  a single long line, with a blank line between paragraphs. A
-  hard-wrapped paragraph renders worse on GitHub than letting it reflow,
-  and more importantly breaks how GitHub builds a squash-merge commit
-  message from the description, which takes the raw text as-is, wrapped
-  line breaks and all.
+  a single long line, with a blank line between paragraphs.
 - No "Test plan" section by default — rely on CI. Add one only when
   something needs verification CI can't cover.
 - A forward-looking coordination note to another PR (e.g. "whichever
