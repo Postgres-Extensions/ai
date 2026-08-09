@@ -69,10 +69,18 @@ accepted by the user.
   means the review *ran*, not that its findings were addressed. Fetch and
   read its actual PR comment (from the comment URL, or `gh pr view --json
   comments`) once the job completes.
-  - For every finding, as soon as you see it: act on it (fix it, or
-    explicitly state why it doesn't need fixing) or ask the user for
+  - For every finding, as soon as you see it: fix it, or ask the user for
     direction. Never leave a finding unaddressed and unacknowledged just
     because the check itself is green.
+  - If you believe a finding doesn't need fixing, that's not your call to
+    make unilaterally — state your reasoning and get the user's explicit
+    confirmation before treating it as resolved. Silently deciding not to
+    fix something and moving on is exactly the "unacknowledged" failure
+    mode this section exists to prevent.
+  - If there's any question in your mind about whether a finding even
+    makes sense — you don't follow what it's pointing at, or its claim
+    doesn't seem to match what the code actually does — ask the user
+    rather than guessing at an interpretation and acting on that guess.
   - Don't blindly implement findings either — treat each one as a claim
     to verify against the actual code before acting on it. The review
     re-reads the diff each run without the code's full history or design
