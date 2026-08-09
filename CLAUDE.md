@@ -193,9 +193,8 @@ One case its docs don't yet cover: a pseudo-version a repo uses to mean
 current, not transiently left behind, so it would be regenerated and
 re-diffed on every single source edit if tracked, for zero
 test-coverage value. Gitignore it instead of the one-time `rm` their docs
-recommend for a skipped version. Tracked as
-https://github.com/Postgres-Extensions/pgxntool/issues/103 for pgxntool's
-own docs to absorb; until then, this is the canonical statement of it.
+recommend for a skipped version. This belongs in pgxntool's own docs
+long-term; this is the canonical statement of it until it lands there.
 
 ### PostgreSQL version support policy
 
