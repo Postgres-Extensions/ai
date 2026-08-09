@@ -19,8 +19,8 @@ is always `https://github.com/<repo-owner>/<repo>/pull/<n>`, and
 repo the branch it's requesting a merge from happens to live in.
 
 **For every repo in this org, that URL must be under `Postgres-Extensions/`
-— never under `jnasbyupgrade/` or any other fork owner.** A PR at
-`https://github.com/jnasbyupgrade/<repo>/pull/<n>` is wrong, full stop,
+— never under a fork owner's own account.** A PR at
+`https://github.com/<fork-owner>/<repo>/pull/<n>` is wrong, full stop,
 even if its branch, title, and content are otherwise perfect — it never
 reached anyone upstream. A branch living on a fork is fine, often the
 default (see "Fork vs. direct-to-upstream" below); a *PR* on a fork is
@@ -57,10 +57,9 @@ conflate them (see "A PR is not a branch" above).**
   <fork-owner>:<branch>` — don't rely on `gh pr create`'s default target,
   which (run from a fork checkout without `--repo`) puts the PR at a
   fork-owner URL instead. That's the actual bug seen in practice: two PRs
-  ended up at `github.com/jnasbyupgrade/object_reference/pull/1` and
-  `.../pull/3` (an old pgxntool-version bump, a since-superseded
-  test-foundation PR) — wrong URL, invisible from upstream's own PR list,
-  forgotten for weeks.
+  (an old pgxntool-version bump, a since-superseded test-foundation PR)
+  ended up at fork-owner URLs instead of upstream's — invisible from
+  upstream's own PR list, forgotten for weeks.
 - Find a PR at a fork-owner URL? Close it (it never reached upstream
   reviewers) and redo it targeting upstream.
 - Periodically check `gh pr list --repo <fork>` for anything left behind
