@@ -10,6 +10,27 @@ words that convey it, ordered by decreasing importance. This isn't just
 style: the top of a description should be usable as-is for a squash-merge
 commit message.
 
+## A PR is not a branch
+
+A **branch** is a git ref — a line of commits, living in exactly one repo.
+A **pull request** is a different thing: think of it as its URL. That URL
+is always `https://github.com/<repo-owner>/<repo>/pull/<n>`, and
+`<repo-owner>/<repo>` is the PR's one and only home — regardless of which
+repo the branch it's requesting a merge from happens to live in.
+
+**For every repo in this org, that URL must be under `Postgres-Extensions/`
+— never under a fork owner's own account.** A PR at
+`https://github.com/<fork-owner>/<repo>/pull/<n>` is wrong, full stop,
+even if its branch, title, and content are otherwise perfect — it never
+reached anyone upstream. A branch living on a fork is fine, often the
+default (see "Fork vs. direct-to-upstream" below); a *PR* on a fork is
+not.
+
+This sounds obvious stated plainly, but conflating "where the branch
+lives" with "what repo the PR itself belongs to" is a repeat source of
+mistakes — it has produced real PRs at a fork-owner URL, invisible from
+upstream's own PR list, sitting forgotten for weeks.
+
 ## Merge authority
 
 - Never merge a PR — the repo owner does, personally, always.
@@ -24,21 +45,47 @@ commit message.
 
 ## Fork vs. direct-to-upstream
 
-- Default: PR from your fork to upstream's default branch. This is the
-  path a real external contributor uses, so it exercises fork-headed-PR CI
-  behavior (trust gates, checkout guards) a same-repo PR wouldn't.
-- Exception: a `gh stack`-tracked series. Stack tooling assumes same-repo
-  branches and can silently rewrite a PR's base against a fork. Use
-  direct-to-upstream branches for a stack, and say why in the PR body.
-- Never open a fork-to-fork PR (both base and head on your fork) — to stack
-  on other work, push the base branch upstream instead.
-- Push feature-branch commits to your fork, not upstream — pushing to
-  upstream for a fork-headed PR creates a stray branch and doesn't update
-  the PR.
-- `upstream` is only for the default branch, release tags, and branches
-  created directly there.
-- CI for a fork-headed PR runs under the base repo's Actions — monitor
-  there, not the fork's.
+**Branch location and PR location are two different questions — don't
+conflate them (see "A PR is not a branch" above).**
+
+- Branch: defaults to living on your fork. Push feature-branch commits
+  there, not to upstream — pushing to upstream when the branch is supposed
+  to be on the fork creates a stray branch and doesn't update the PR.
+- PR: its URL is always `github.com/Postgres-Extensions/<repo>/pull/<n>`,
+  even when the branch lives on your fork. Create it with `gh pr create
+  --repo <org>/<repo> --base <default-branch> --head
+  <fork-owner>:<branch>` — don't rely on `gh pr create`'s default target,
+  which (run from a fork checkout without `--repo`) puts the PR at a
+  fork-owner URL instead. That's the actual bug seen in practice: two PRs
+  (an old pgxntool-version bump, a since-superseded test-foundation PR)
+  ended up at fork-owner URLs instead of upstream's — invisible from
+  upstream's own PR list, forgotten for weeks.
+- Find a PR at a fork-owner URL? That's already someone's mistake — don't
+  compound it by acting unilaterally. Investigate whether the same work
+  already exists elsewhere (merged to a default branch, or covered by an
+  equivalent open PR against upstream), report what you find to the user,
+  then stop. Don't close it, don't redo it, don't take any other action —
+  let the user decide what happens to it.
+- Periodically check `gh pr list --repo <fork>` for anything left behind
+  by this mistake.
+- Exception: a `gh stack`-tracked series needs the branch itself upstream
+  too (same-repo) — stack tooling assumes same-repo branches and can
+  silently rewrite a PR's base against a fork otherwise. True as of
+  2026-08-09. The first time you read this in a session (not every time),
+  check whether GitHub/`gh stack` still has this limitation — if it's been
+  fixed, tell the user rather than continuing to avoid forks for stacks
+  unnecessarily.
+- `upstream` is otherwise only for the default branch, release tags, and
+  branches created directly there (e.g. a stack).
+- Whether a fork-hosted branch changes anything about how CI runs depends
+  entirely on how that repo's `ci.yml` is written — a trust gate keyed on
+  `head.repo.owner.login`, a `pull_request_target` vs. `pull_request`
+  trigger, a checkout step needing `allow-unsafe-pr-checkout`, etc. There's
+  no universal behavior difference; check the specific workflow.
+- A PR always runs its CI under whichever repo it actually lives in (see
+  "A PR is not a branch" above) — which, per the rule above, should always
+  be upstream. Monitor CI there; there's nothing to check on the fork,
+  since the PR was never there to begin with.
 
 ## PR titles
 
