@@ -49,15 +49,15 @@ the extension's own code works when its schema is specifically
   leave the extension's schema on `search_path` without you doing it
   deliberately.
 
-## Verify it held for the whole run, not just at the start
+## Verify it held for the whole run
 
-A single check at the start of the suite only proves the schema was
-absent from `search_path` at that moment — it says nothing about whether
-some test in between put it back (a test that runs `SET search_path` and
-never resets it, a helper that creates the extension's schema and leaves
-it on the path, etc.), silently reintroducing exactly the accidental-
-resolution risk this whole exercise exists to rule out. **Add a final
-assertion, after the rest of the suite has run, that re-checks the
-extension's schema is still absent from `search_path`.** A start-only
-check cannot tell you the requirement held for the entire run; a
-start-and-end check is the cheap way to actually back that claim.
+If you explicitly set `search_path` yourself before running assertions
+(as above), checking it again right after proves nothing — you already
+know what you just set it to. **The check that actually matters is at
+the *end*, after the rest of the suite has run: re-assert the
+extension's schema is still absent from `search_path`.** That's what
+catches the failure mode this section exists to guard against — not "did
+my own setup work," but "did some test in between run `SET search_path`
+(or otherwise put the schema back) and never reset it," silently
+reintroducing the exact accidental-resolution risk this whole exercise
+exists to rule out.
