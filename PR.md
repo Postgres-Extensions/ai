@@ -1,13 +1,9 @@
 # PR and commit conventions
 
-Synthesized from `PR.md` scratch notes left behind in five separate
-Postgres-Extensions repos (`extension_tools`, `linter`, `object_reference`,
-`pgxntool`, `pgxntool-test`, `test_factory`) — each one a running log of
-corrections an agent actually received in-session. Collected here as one
-cross-repo reference. Where a rule was stated identically in multiple repos
-it's merged into one entry; where a repo had a narrow local exception
-(release-only CI-trigger PRs, `gh stack` quirks) that's called out as such
-rather than generalized away.
+Conventions for opening, describing, and pushing PRs across
+Postgres-Extensions repos. A few entries note a narrow, repo-specific
+exception (release-only CI-trigger PRs, `gh stack` quirks) rather than
+stating the general rule as if it had none.
 
 ## Merge authority
 
