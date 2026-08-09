@@ -199,12 +199,3 @@ started in — unless told explicitly to work there.
   not buried mid-message.
 - A question mixed in with other tasks: answer it inline where relevant,
   and repeat it briefly at the end so it isn't lost.
-
-## Code comments
-
-- Attribution is fine ("modeled on X's Y script"). Justification that
-  leans on context a reader of *this* repo doesn't have is not — every
-  comment should stand on its own logic.
-- Only comment a bug fix when the cause was non-obvious (missed corner
-  case, subtle interaction, wrong assumption) — explain what was missed,
-  don't just label it a bug fix. Skip comments for obvious fixes.
