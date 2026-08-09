@@ -65,6 +65,25 @@ accepted by the user.
 - If a repo's CI has a docs-only/changed-files gate, check that jobs
   skipped for the expected reason rather than assuming a quiet run means
   CI didn't trigger.
+- Where a repo has a `claude-code-review` job, a green conclusion only
+  means the review *ran*, not that its findings were addressed. Fetch and
+  read its actual PR comment (from the comment URL, or `gh pr view --json
+  comments`) once the job completes.
+  - For every finding, as soon as you see it: act on it (fix it, or
+    explicitly state why it doesn't need fixing) or ask the user for
+    direction. Never leave a finding unaddressed and unacknowledged just
+    because the check itself is green.
+  - Don't blindly implement findings either — treat each one as a claim
+    to verify against the actual code before acting on it. The review
+    re-reads the diff each run without the code's full history or design
+    intent in mind, and can be wrong or miss context.
+  - If a finding — or one remotely similar to a finding from an earlier
+    push on the same PR — shows up again, stop immediately and ask the
+    user before doing anything else. A recurrence means you and the
+    review bot are not in alignment (either the earlier fix didn't
+    actually address it, or you and the reviewer disagree about it), and
+    continuing to guess burns tokens without resolving the actual
+    disagreement.
 
 ## Testability
 
