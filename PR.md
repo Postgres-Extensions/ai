@@ -64,8 +64,14 @@ commit message.
 - Describe the diff as it stands right now — pull the current file
   list/diff before writing. PRs get rebased and cascaded through; a
   description rots faster than expected.
-- State what the PR does, not how you got there — no "first I tried X,
-  then found Y" narrative.
+- State what the PR does and why, not the process that led to it — this
+  covers both trial-and-error narration ("first I tried X, then found Y")
+  and discovery narration ("found this while doing Y" / "noticed this
+  while adding Z") equally; both describe how you got here, not what the
+  change is. If the discovery context is genuinely relevant — e.g. it's
+  the reason a companion PR exists — state the resulting fact or
+  relationship directly ("X and Y both need this fix") rather than
+  narrating the sequence of events that led you to it.
 - State the actual, verified reason for a change. If the description
   asserts a fact, verify it directly — don't state it from memory.
 - Strip historical narrative once it's not load-bearing — no rebase notes,
