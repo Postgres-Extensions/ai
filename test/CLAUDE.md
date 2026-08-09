@@ -61,3 +61,17 @@ my own setup work," but "did some test in between run `SET search_path`
 (or otherwise put the schema back) and never reset it," silently
 reintroducing the exact accidental-resolution risk this whole exercise
 exists to rule out.
+
+Ideally you'd check continuously throughout the run, not just once at
+the end — but for a file-based test suite (e.g. `pg_regress`, where each
+test is its own `.sql` file), injecting a check into every single file
+isn't practical. The end-of-run check is the practical compromise, not
+the ideal.
+
+A cheap complement that gets closer to continuous coverage without the
+per-file overhead: grep the suite's own files for `search_path` and
+confirm it appears in exactly two places — the file that sets it at the
+start, and the file that re-checks it at the end. Any other match is a
+real finding: some other test is touching `search_path`, and it's worth
+tracking down at review time rather than waiting to see whether the
+end-of-run check happens to catch its specific effect.
