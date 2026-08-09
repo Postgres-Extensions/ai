@@ -48,5 +48,10 @@ suite once against that final state. Randomizing both names (not just
 using two fixed ones) rules out a hardcoded reference that happens to
 survive because it matches one of two predictable names.
 
-No extension in this org is currently `relocatable = true`, but document
-the pattern anyway so it's ready the day one is.
+`trunklet-format` is currently the only `relocatable = true` extension in
+this org — though note it doesn't itself create any schema-dependent
+objects (it registers a template language into `trunklet`'s own,
+separately-fixed schema via a function call), so it's not obviously a
+case this pattern actually needs to be applied to. Check what an
+extension's install script actually does before assuming relocation
+testing is worth building for it.
