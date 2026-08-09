@@ -3,10 +3,14 @@
 ## The one thing to get right
 
 **When testing a PostgreSQL extension, its own schema(s) must be absent
-from `search_path` for at least part of the test run.** This is not
-optional, and it is not only for schema-flexible extensions — it applies
-to *every* extension in this org, including ones permanently pinned to a
-fixed schema via `schema=` in their `.control` file.
+from `search_path` for the *entire* test run — not "most of it," not
+"at the start," the whole thing.** A window where the schema is
+reachable is a window where an unqualified reference can resolve by
+accident and go undetected; letting it back onto `search_path` at any
+point defeats the purpose for whatever ran during that window. This is
+not optional, and it is not only for schema-flexible extensions — it
+applies to *every* extension in this org, including ones permanently
+pinned to a fixed schema via `schema=` in their `.control` file.
 
 Why this matters: if an extension's schema is reachable via
 `search_path`, any unqualified reference inside the extension's own SQL
@@ -45,13 +49,15 @@ the extension's own code works when its schema is specifically
   leave the extension's schema on `search_path` without you doing it
   deliberately.
 
-## Double-check at the *end* of the test run too
+## Verify it held for the whole run, not just at the start
 
 A single check at the start of the suite only proves the schema was
 absent from `search_path` at that moment — it says nothing about whether
-some test in between left it there (a test that runs `SET search_path`
-and never resets it, a helper that creates the extension's schema and
-leaves it on the path, etc.). **Add a final assertion, after the rest of
-the suite has run, that re-checks the extension's schema is still absent
-from `search_path`.** This is cheap insurance against exactly the kind of
-mid-suite state leak that a start-of-suite-only check will never catch.
+some test in between put it back (a test that runs `SET search_path` and
+never resets it, a helper that creates the extension's schema and leaves
+it on the path, etc.), silently reintroducing exactly the accidental-
+resolution risk this whole exercise exists to rule out. **Add a final
+assertion, after the rest of the suite has run, that re-checks the
+extension's schema is still absent from `search_path`.** A start-only
+check cannot tell you the requirement held for the entire run; a
+start-and-end check is the cheap way to actually back that claim.
