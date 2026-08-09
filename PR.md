@@ -17,6 +17,8 @@ commit message.
   goes through a PR.
 - Never apply or remove a maintainer-gated label, even with permission to —
   flag it and let a human apply it.
+- Never delete a branch without explicit user approval (`git push origin
+  --delete`, `git branch -d`/`-D`) — ask first.
 - Exception seen in practice: a release workflow's CI-trigger-only empty PR
   exists solely to run CI and is closed once CI passes, never merged.
 
