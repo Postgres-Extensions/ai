@@ -12,19 +12,24 @@ commit message.
 
 ## A PR is not a branch
 
-A **branch** is a git ref: a line of commits, living in exactly one repo.
-A **pull request** is a separate GitHub object layered on top of two
-branches (a base and a head) that can live in *different* repos — it has
-its own base-repo/base-branch and head-repo/head-branch, its own review
-state, and its own lifecycle. Creating or pushing a branch does not create
-a PR; a PR is a request to merge one named branch into another, not the
-branch itself.
+A **branch** is a git ref — a line of commits, living in exactly one repo.
+A **pull request** is a different thing: think of it as its URL. That URL
+is always `https://github.com/<repo-owner>/<repo>/pull/<n>`, and
+`<repo-owner>/<repo>` is the PR's one and only home — regardless of which
+repo the branch it's requesting a merge from happens to live in.
+
+**For every repo in this org, that URL must be under `Postgres-Extensions/`
+— never under `jnasbyupgrade/` or any other fork owner.** A PR at
+`https://github.com/jnasbyupgrade/<repo>/pull/<n>` is wrong, full stop,
+even if its branch, title, and content are otherwise perfect — it never
+reached anyone upstream. A branch living on a fork is fine, often the
+default (see "Fork vs. direct-to-upstream" below); a *PR* on a fork is
+not.
 
 This sounds obvious stated plainly, but conflating "where the branch
-lives" with "what repo the PR is opened in" is a repeat source of
-mistakes — see "Fork vs. direct-to-upstream" below for the concrete
-failure mode it causes (a fork-to-fork PR, created by accident because
-the branch happened to live on a fork).
+lives" with "what repo the PR itself belongs to" is a repeat source of
+mistakes — it has produced real PRs at a fork-owner URL, invisible from
+upstream's own PR list, sitting forgotten for weeks.
 
 ## Merge authority
 
@@ -40,39 +45,37 @@ the branch happened to live on a fork).
 
 ## Fork vs. direct-to-upstream
 
-**Branch and PR location are two different questions — don't conflate them.**
+**Branch location and PR location are two different questions — don't
+conflate them (see "A PR is not a branch" above).**
 
-- Branch: defaults to your fork. Push feature-branch commits there, not to
-  upstream — pushing to upstream for a fork-headed PR creates a stray
-  branch and doesn't update the PR.
-- PR: always targets upstream as its base repo, even when the branch lives
-  on your fork. When creating it, pass the upstream repo and the
-  fork-qualified head explicitly (e.g. `gh pr create --repo
-  <org>/<repo> --base <default-branch> --head <fork-owner>:<branch>`) —
-  don't rely on `gh pr create`'s default target, which (run from a fork
-  checkout without `--repo`) creates the PR *in the fork itself*, with
-  both base and head there. That's the actual bug seen in practice: two
-  PRs on a fork (an old pgxntool-version bump, a since-superseded
-  test-foundation PR) had `isCrossRepository: false` — silently created
-  as fork-to-fork, invisible from upstream's own PR list, and left
+- Branch: defaults to living on your fork. Push feature-branch commits
+  there, not to upstream — pushing to upstream when the branch is supposed
+  to be on the fork creates a stray branch and doesn't update the PR.
+- PR: its URL is always `github.com/Postgres-Extensions/<repo>/pull/<n>`,
+  even when the branch lives on your fork. Create it with `gh pr create
+  --repo <org>/<repo> --base <default-branch> --head
+  <fork-owner>:<branch>` — don't rely on `gh pr create`'s default target,
+  which (run from a fork checkout without `--repo`) puts the PR at a
+  fork-owner URL instead. That's the actual bug seen in practice: two PRs
+  ended up at `github.com/jnasbyupgrade/object_reference/pull/1` and
+  `.../pull/3` (an old pgxntool-version bump, a since-superseded
+  test-foundation PR) — wrong URL, invisible from upstream's own PR list,
   forgotten for weeks.
-- Never open a fork-to-fork PR (both base and head on your fork). If you
-  find one, close it (it never reached upstream reviewers) and redo it
-  targeting upstream.
+- Find a PR at a fork-owner URL? Close it (it never reached upstream
+  reviewers) and redo it targeting upstream.
 - Periodically check `gh pr list --repo <fork>` for anything left behind
-  by this mistake — a fork-to-fork PR won't surface in upstream's own PR
-  list, so it's easy to lose track of.
+  by this mistake.
 - Exception: a `gh stack`-tracked series needs the branch itself upstream
-  (same-repo), not on the fork — stack tooling assumes same-repo branches
-  and can silently rewrite a PR's base against a fork otherwise.
+  too (same-repo) — stack tooling assumes same-repo branches and can
+  silently rewrite a PR's base against a fork otherwise.
 - `upstream` is otherwise only for the default branch, release tags, and
   branches created directly there (e.g. a stack).
-- Opening a fork-headed PR against upstream (the correct, default shape)
-  exercises fork-headed-PR CI behavior (trust gates, checkout guards) that
-  a same-repo PR wouldn't — this is a side benefit of the default, not a
-  reason to prefer the fork over upstream when a stack requires otherwise.
-- CI for a fork-headed PR runs under the base repo's Actions — monitor
-  there, not the fork's.
+- A PR whose branch lives on a fork exercises fork-based CI behavior
+  (trust gates, checkout guards) that a same-repo PR wouldn't — a side
+  benefit of the default, not a reason to prefer the fork over upstream
+  when a stack requires otherwise.
+- CI for a PR whose branch lives on a fork runs under the base repo's
+  Actions — monitor there, not the fork's.
 
 ## PR titles
 
