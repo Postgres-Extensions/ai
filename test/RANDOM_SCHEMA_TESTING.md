@@ -1,8 +1,9 @@
 # Random-schema testing for non-fixed-schema extensions
 
 This doc covers two things beyond the universal search_path-isolation
-rule (`test/CLAUDE.md`), both specific to extensions that are *not*
-pinned to a fixed schema via `schema=` in their `.control` file.
+rule (`CLAUDE.md`, this same directory), both specific to extensions that
+are *not* pinned to a fixed schema via `schema=` in their `.control`
+file.
 
 ## Catching hardcoded schema references
 

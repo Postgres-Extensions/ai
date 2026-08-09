@@ -1,7 +1,5 @@
 # Extension testing: schema/search_path isolation
 
-## The one thing to get right
-
 **When testing a PostgreSQL extension, its own schema(s) must be absent
 from `search_path` for the *entire* test run — not "most of it," not
 "at the start," the whole thing.** A window where the schema is
@@ -40,7 +38,11 @@ the extension's own code works when its schema is specifically
 
 - Set `search_path` for the test session to something that does not
   contain the extension's schema (e.g. a scratch schema, or `pg_catalog`
-  alone) before running assertions.
+  alone) before running assertions. If your repo's build system is
+  pgxntool, its `test/install` feature (see pgxntool's own docs) — a set
+  of files that run once, committed, before the rest of the suite in the
+  same `pg_regress` invocation — is the natural place to put this: set it
+  there and it stays set for every test file that follows.
 - Don't assume the ambient/default search_path already excludes the
   extension's schema — check what it actually resolves to
   (`current_schemas(false)` or similar) rather than assuming `public` or
@@ -69,9 +71,10 @@ isn't practical. The end-of-run check is the practical compromise, not
 the ideal.
 
 A cheap complement that gets closer to continuous coverage without the
-per-file overhead: grep the suite's own files for `search_path` and
-confirm it appears in exactly two places — the file that sets it at the
-start, and the file that re-checks it at the end. Any other match is a
-real finding: some other test is touching `search_path`, and it's worth
-tracking down at review time rather than waiting to see whether the
-end-of-run check happens to catch its specific effect.
+per-file overhead: it's worth adding an automated test — checked in and
+run as part of the suite, not a one-off manual grep — that asserts
+`search_path` is mentioned in exactly two places in the suite's own
+files: the file that sets it at the start, and the file that re-checks
+it at the end. A third match means some other test is touching
+`search_path`, which needs tracking down regardless of whether the
+end-of-run check's specific assertion happens to notice its effect.
