@@ -60,21 +60,32 @@ conflate them (see "A PR is not a branch" above).**
   (an old pgxntool-version bump, a since-superseded test-foundation PR)
   ended up at fork-owner URLs instead of upstream's — invisible from
   upstream's own PR list, forgotten for weeks.
-- Find a PR at a fork-owner URL? Close it (it never reached upstream
-  reviewers) and redo it targeting upstream.
+- Find a PR at a fork-owner URL? Don't just close it. Investigate first:
+  check whether the same work already exists elsewhere (merged to a
+  default branch, or covered by an equivalent open PR against upstream).
+  Report what you find to the user. Only close it once its content is
+  confirmed redundant — otherwise redo it correctly-targeted at upstream
+  so the work isn't lost.
 - Periodically check `gh pr list --repo <fork>` for anything left behind
   by this mistake.
 - Exception: a `gh stack`-tracked series needs the branch itself upstream
   too (same-repo) — stack tooling assumes same-repo branches and can
-  silently rewrite a PR's base against a fork otherwise.
+  silently rewrite a PR's base against a fork otherwise. True as of
+  2026-08-09. The first time you read this in a session (not every time),
+  check whether GitHub/`gh stack` still has this limitation — if it's been
+  fixed, tell the user rather than continuing to avoid forks for stacks
+  unnecessarily.
 - `upstream` is otherwise only for the default branch, release tags, and
   branches created directly there (e.g. a stack).
-- A PR whose branch lives on a fork exercises fork-based CI behavior
-  (trust gates, checkout guards) that a same-repo PR wouldn't — a side
-  benefit of the default, not a reason to prefer the fork over upstream
-  when a stack requires otherwise.
-- CI for a PR whose branch lives on a fork runs under the base repo's
-  Actions — monitor there, not the fork's.
+- Whether a fork-hosted branch changes anything about how CI runs depends
+  entirely on how that repo's `ci.yml` is written — a trust gate keyed on
+  `head.repo.owner.login`, a `pull_request_target` vs. `pull_request`
+  trigger, a checkout step needing `allow-unsafe-pr-checkout`, etc. There's
+  no universal behavior difference; check the specific workflow.
+- A PR always runs its CI under whichever repo it actually lives in (see
+  "A PR is not a branch" above) — which, per the rule above, is always
+  upstream. Monitor CI there; there's nothing to check on the fork, since
+  the PR was never there to begin with.
 
 ## PR titles
 
