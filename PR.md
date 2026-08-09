@@ -24,27 +24,37 @@ commit message.
 
 ## Fork vs. direct-to-upstream
 
-- Default: PR directly against upstream's default branch, not through your
-  fork. A fork-headed PR left unmerged is easy to forget — it doesn't show
-  up in upstream's own PR list, so it can sit stale indefinitely (seen in
-  practice: an abandoned pgxntool-version-bump PR and an abandoned test-
-  foundation PR, both long superseded, sitting unnoticed on a fork for
-  weeks).
-- Use the fork only when a task specifically needs to exercise
-  fork-headed-PR CI behavior (trust gates, checkout guards,
-  `allow-unsafe-pr-checkout`) — the path a real external contributor uses.
-  Say so in the PR body when this is why you're using it.
-- If you do open a fork-headed PR, don't let it go stale: close or merge it
-  promptly, and periodically check `gh pr list --repo <fork>` for anything
-  left behind.
-- A `gh stack`-tracked series still requires same-repo (upstream) branches
-  regardless of the above — stack tooling assumes same-repo branches and
-  can silently rewrite a PR's base against a fork.
-- Never open a fork-to-fork PR (both base and head on your fork) — to stack
-  on other work, push the base branch upstream instead.
-- Push feature-branch commits to your fork only when the PR itself is
-  fork-headed — pushing to upstream for a fork-headed PR creates a stray
+**Branch and PR location are two different questions — don't conflate them.**
+
+- Branch: defaults to your fork. Push feature-branch commits there, not to
+  upstream — pushing to upstream for a fork-headed PR creates a stray
   branch and doesn't update the PR.
+- PR: always targets upstream as its base repo, even when the branch lives
+  on your fork. When creating it, pass the upstream repo and the
+  fork-qualified head explicitly (e.g. `gh pr create --repo
+  <org>/<repo> --base <default-branch> --head <fork-owner>:<branch>`) —
+  don't rely on `gh pr create`'s default target, which (run from a fork
+  checkout without `--repo`) creates the PR *in the fork itself*, with
+  both base and head there. That's the actual bug seen in practice: two
+  PRs on a fork (an old pgxntool-version bump, a since-superseded
+  test-foundation PR) had `isCrossRepository: false` — silently created
+  as fork-to-fork, invisible from upstream's own PR list, and left
+  forgotten for weeks.
+- Never open a fork-to-fork PR (both base and head on your fork). If you
+  find one, close it (it never reached upstream reviewers) and redo it
+  targeting upstream.
+- Periodically check `gh pr list --repo <fork>` for anything left behind
+  by this mistake — a fork-to-fork PR won't surface in upstream's own PR
+  list, so it's easy to lose track of.
+- Exception: a `gh stack`-tracked series needs the branch itself upstream
+  (same-repo), not on the fork — stack tooling assumes same-repo branches
+  and can silently rewrite a PR's base against a fork otherwise.
+- `upstream` is otherwise only for the default branch, release tags, and
+  branches created directly there (e.g. a stack).
+- Opening a fork-headed PR against upstream (the correct, default shape)
+  exercises fork-headed-PR CI behavior (trust gates, checkout guards) that
+  a same-repo PR wouldn't — this is a side benefit of the default, not a
+  reason to prefer the fork over upstream when a stack requires otherwise.
 - CI for a fork-headed PR runs under the base repo's Actions — monitor
   there, not the fork's.
 
