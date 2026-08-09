@@ -10,6 +10,22 @@ words that convey it, ordered by decreasing importance. This isn't just
 style: the top of a description should be usable as-is for a squash-merge
 commit message.
 
+## A PR is not a branch
+
+A **branch** is a git ref: a line of commits, living in exactly one repo.
+A **pull request** is a separate GitHub object layered on top of two
+branches (a base and a head) that can live in *different* repos — it has
+its own base-repo/base-branch and head-repo/head-branch, its own review
+state, and its own lifecycle. Creating or pushing a branch does not create
+a PR; a PR is a request to merge one named branch into another, not the
+branch itself.
+
+This sounds obvious stated plainly, but conflating "where the branch
+lives" with "what repo the PR is opened in" is a repeat source of
+mistakes — see "Fork vs. direct-to-upstream" below for the concrete
+failure mode it causes (a fork-to-fork PR, created by accident because
+the branch happened to live on a fork).
+
 ## Merge authority
 
 - Never merge a PR — the repo owner does, personally, always.
