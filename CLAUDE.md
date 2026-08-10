@@ -74,6 +74,12 @@ accepted by the user.
   - For every finding, as soon as you see it: fix it, or ask the user for
     direction. Never leave a finding unaddressed and unacknowledged just
     because the check itself is green.
+  - This applies to any code review, not just the automated job: once a
+    finding (bot or human reviewer) is fixed, reply to it — an inline
+    reply on the specific comment if it's an inline thread, otherwise a PR
+    comment referencing it — stating what changed. A fix visible only in
+    the diff looks identical to an ignored finding from the reviewer's
+    side.
   - If you believe a finding doesn't need fixing, that's not your call to
     make unilaterally — state your reasoning and get the user's explicit
     confirmation before treating it as resolved. Silently deciding not to

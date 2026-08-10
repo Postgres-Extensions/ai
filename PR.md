@@ -151,6 +151,16 @@ conflate them (see "A PR is not a branch" above).**
   can't be expressed as a diff — put a bolded line at the top of the
   description calling that out.
 
+## Comments and replies: identify as an agent
+
+Any comment or reply an agent posts on GitHub — a PR comment, an issue
+comment, an inline review reply — must open with a short
+self-identification (e.g. "Claude here") so a reader can tell at a glance
+it's agentic, not from a human. This does not apply to PR titles,
+descriptions, or commit messages, which are already attributed
+structurally (PR author, `Co-Authored-By` line) rather than through the
+text itself.
+
 ## Scope: one PR, one concern
 
 - Split unrelated changes even if they touch a file a PR is already
