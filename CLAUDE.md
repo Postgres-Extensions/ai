@@ -48,6 +48,9 @@ on your in-context memory of them.
   reference format
 - [test/CLAUDE.md](./test/CLAUDE.md) — extension testing conventions
   (schema/search_path isolation)
+- [RELEASE.md](./RELEASE.md) — shared release process for repos that
+  distribute a PGXN extension via pgxntool (versioning, tagging, PGXN
+  upload)
 
 ## GitHub CI: monitor after every push
 
