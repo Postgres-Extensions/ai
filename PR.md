@@ -202,12 +202,17 @@ conflate them (see "A PR is not a branch" above).**
 
 ## Force-push / history rewriting
 
-- Never force-push a PR branch without asking first and getting a real
-  reply — not even your own draft PR, not even when a task seems to
-  require it. A task that implies a rewrite is a signal to ask, not a
-  substitute for the user saying yes.
-- Need to correct a pushed commit? Add a new commit or ask how to
-  restructure — don't default to amend+force-push.
+- Force-push to a default branch (`main`/`master`) is never acceptable —
+  no exception, no asking first. (Branch protection should already block
+  this; don't rely on that as the only line of defense.)
+- On any other branch, force-push is still something to avoid whenever
+  possible — prefer adding a new commit, or ask how to restructure,
+  rather than defaulting to amend+force-push.
+- If a force-push to a non-default branch is genuinely the right move,
+  never do it without asking first and getting a real reply — not even
+  your own draft PR, not even when a task seems to require it. A task
+  that implies a rewrite is a signal to ask, not a substitute for the
+  user saying yes.
 - Any exception must be pre-authorized by name for a specific, narrowly
   gated task — never inferred.
 - Never delegate force-push, default-branch pushes, or merges to a
