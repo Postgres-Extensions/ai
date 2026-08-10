@@ -49,6 +49,16 @@ on your in-context memory of them.
 - [test/CLAUDE.md](./test/CLAUDE.md) — extension testing conventions
   (schema/search_path isolation)
 
+## GitHub comments: identify as an agent
+
+Any comment or reply an agent posts on GitHub — a PR comment, an issue
+comment, an inline review reply, a commit comment — must open with a
+short self-identification (e.g. "Claude here") so a reader can tell at a
+glance it's agentic, not from a human. This does not apply to PR titles,
+descriptions, or commit messages, which are already attributed
+structurally (PR author, `Co-Authored-By` line) rather than through the
+text itself.
+
 ## GitHub CI: monitor after every push
 
 After every `git push` that updates a branch — whether it opens/updates a
