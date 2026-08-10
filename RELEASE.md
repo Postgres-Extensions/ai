@@ -10,13 +10,16 @@ itself — neither has a version/release concept at all), or to
 `pgxntool`'s own release (see `pgxntool-test/.claude/skills/release/SKILL.md`
 if you land there expecting this process — it doesn't apply).
 
-Each consuming repo should keep its own `RELEASE.md` short: link here for
-the shared mechanics below, and document **only** what's genuinely specific
-to that repo — its extension name in example commands, real per-repo
-gotchas discovered the hard way, historical exceptions. Don't copy these
-steps into a local file; copies drift (see "Notes / gotchas" at the bottom —
-several were found independently, in the same words, in more than one
-repo's local copy before this doc existed).
+**Only keep a local `RELEASE.md` in a consuming repo if there's a
+legitimate, repo-specific need for one** — a real gotcha discovered the hard
+way, a genuine historical exception, a deviation from the steps below that
+actually affects how that repo is released. A repo with nothing like that
+doesn't need a `RELEASE.md` at all; don't add one just for symmetry with
+other repos, and don't copy these steps into a local file "for
+completeness" — copies drift (see "Notes / gotchas" at the bottom — several
+were found independently, in the same words, in more than one repo's local
+copy before this doc existed). If a local file does exist for a genuine
+reason, keep it to just that reason and link here for everything else.
 
 ## Overview
 
