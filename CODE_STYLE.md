@@ -35,6 +35,26 @@ across Postgres-Extensions repos.
   the same comment verbatim in adjacent code — write it once and reference
   it ("same as above").
 
+## Prefer `%TYPE` over a hardcoded type
+
+When a function parameter, variable, or column exists to hold a copy of
+another table's column value, declare it as `table.column%TYPE` instead of
+hardcoding the type. This ties the declaration to the column's actual
+type, so a future column type change doesn't silently create a mismatch
+that a hardcoded type would miss.
+
+Don't "clean up" an existing `%TYPE` reference by replacing it with the
+literal type it currently resolves to — that's removing the exact
+protection it exists to provide, not simplifying dead weight. PostgreSQL
+can't preserve a `%TYPE` reference in a function's parameter list; it
+resolves it once at `CREATE FUNCTION` time and emits a NOTICE like `type
+reference tbl.col%TYPE converted to text` every time the function is
+(re)created. That NOTICE is expected and harmless, not a sign the `%TYPE`
+should be replaced (see
+[Postgres-Extensions/test_factory#18](https://github.com/Postgres-Extensions/test_factory/pull/18)
+for a case where it was mistakenly removed for exactly this reason, then
+reverted).
+
 ## Don't set `client_min_messages` inside an extension install script
 
 `CREATE EXTENSION`/`ALTER EXTENSION UPDATE` already forces
