@@ -114,6 +114,23 @@ accepted by the user.
     continuing to guess burns tokens without resolving the actual
     disagreement.
 
+## Before writing to memory, check whether it belongs in ../ai/ instead
+
+Any time an agent is about to save something to a memory system (an
+auto-memory file, a session note, or any other persistent-across-sessions
+store) — pause and ask: is this actually an org-wide convention, and does
+it belong in `../ai/` rather than wherever memory happens to be scoped?
+Memory is typically private to one agent, one repo, or one session; a
+convention that actually applies across Postgres-Extensions repos is
+invisible to every other agent/session if it only lives there, and
+different sessions can end up re-deriving it inconsistently, or not at
+all.
+
+If there's any real doubt — not every memory is a candidate; this is
+about the ones that read like a rule anyone working in this org's repos
+should follow, not project-specific or session-specific detail — ask the
+user rather than deciding unilaterally which store it belongs in.
+
 ## Testability
 
 Ask, before writing code, whether it could be tested in isolation (as a
