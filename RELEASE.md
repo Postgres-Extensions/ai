@@ -97,6 +97,20 @@ still matches what that version actually shipped:
       trustworthy regardless of vendored version; when in doubt, also
       eyeball the raw `pg_regress` output rather than trusting a green
       checkmark alone.
+- [ ] **No CI dependency-override toggle is currently set.** If this repo's
+      CI has a toggle to build a dependency from a git ref instead of its
+      published PGXN version (typically added because the published
+      version doesn't yet satisfy what this repo actually needs), it must
+      be unset before you proceed. Check the toggle's *live value in CI
+      config* (e.g. `ci.yml`'s `env:`), not just whether the Makefile
+      *supports* the override — a normally-empty, always-present opt-in
+      variable existing in the Makefile doesn't mean anything is currently
+      pinned. Releasing while it's set produces a real, publishable zip
+      that declares a dependency floor nothing on PGXN can actually
+      satisfy — anyone who installs it gets a build failure, not the
+      tested code. If it's set, stop: wait for the real dependency version
+      to land on PGXN and the override to be reverted before cutting this
+      release.
 
 ## 3. Decide the version and what to track
 
@@ -236,12 +250,6 @@ repo that adopts it — not yet done anywhere in the org.
 - CI passing is **not** proof the test suite passed on every vendored
   pgxntool version — see step 2. This has bitten real PRs (every
   `pg_regress` test failing while CI reported success).
-- If this repo's CI has a dependency override toggle (e.g. building a
-  dependency from a git ref instead of its published PGXN version because
-  the published version doesn't satisfy what this repo actually needs),
-  check it's unset before cutting a release — a release cut while it's set
-  produces a zip that declares a dependency floor nothing on PGXN can
-  actually satisfy. Check the toggle's live value in CI config, not just
-  whether the Makefile *supports* overriding it — a normally-empty,
-  always-present opt-in variable existing in the Makefile doesn't mean
-  anything is currently pinned.
+- A CI dependency-override toggle (build a dependency from a git ref
+  instead of its published PGXN version) must be unset before cutting a
+  release — see step 2 above.
