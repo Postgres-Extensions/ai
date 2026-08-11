@@ -116,3 +116,23 @@ rows with `set_eq()`/`set_ne()`/`set_has()` (order doesn't matter, no
 duplicates) or `bag_eq()`/`bag_ne()`/`bag_has()` (order doesn't matter,
 duplicates do) — for the cases where `is()`'s exact, order-sensitive
 array equality is stricter than what's actually being asserted.
+
+## Tests run as superuser by default — most extensions won't, in production
+
+**By default, `pg_regress`/`installcheck` connects and runs the entire
+suite as a superuser — but most extensions are not actually used that
+way in production.** A superuser bypasses every privilege check
+(`GRANT`/`REVOKE`, row-level security, ownership checks, and more), so a
+test suite that only ever runs as superuser can pass while an extension
+has a real privilege bug: a function that should be callable by a
+regular user but isn't, a check that's supposed to block an
+unprivileged user but doesn't because the suite never actually tried it
+as one.
+
+General best practice: have the suite create a dedicated, less
+privileged test role and run at least the tests that exercise
+user-facing behavior (as opposed to install/setup, which legitimately
+needs superuser) as that role instead — `SET ROLE` or a separate
+connection, whichever the suite's harness supports. Grant that role only
+what a real, non-superuser consumer of the extension would actually
+have, not everything the superuser setup happened to leave lying around.
