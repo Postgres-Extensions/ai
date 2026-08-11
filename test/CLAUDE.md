@@ -109,3 +109,10 @@ reader to reconstruct it from the boolean expression's guts.
 specific applies — this isn't a mandate to force-fit every check into
 one of pgTap's specialized functions, only to reach for one when it
 already matches the shape of what's being tested.
+
+The `set_*`/`bag_*` functions are also useful for comparing arrays:
+`unnest()` the array into rows and compare that against the expected
+rows with `set_eq()`/`set_ne()`/`set_has()` (order doesn't matter, no
+duplicates) or `bag_eq()`/`bag_ne()`/`bag_has()` (order doesn't matter,
+duplicates do) — for the cases where `is()`'s exact, order-sensitive
+array equality is stricter than what's actually being asserted.
