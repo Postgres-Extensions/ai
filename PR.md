@@ -105,6 +105,15 @@ conflate them (see "A PR is not a branch" above).**
     `CLAUDE.md`, pure docs.
   - Verify against the actual file list (`gh pr view <n> --json files`)
     before applying — don't guess from the title or memory.
+  - Doesn't apply within this repo (`ai/`) itself: its `.md` files are
+    the actual deliverable, not incidental docs alongside some other
+    real shipped artifact, so a PR that changes them is never "CI-only"
+    here.
+  - That carve-out is narrow — it only means the code-vs-docs
+    distinction above breaks down for `ai/`. Everything else in this
+    file not tied to "is it code" (PR titles/descriptions, fork/branch
+    policy, etc.) still applies to PRs against `ai/` exactly as it does
+    everywhere else in this org.
 
 ## PR descriptions
 
