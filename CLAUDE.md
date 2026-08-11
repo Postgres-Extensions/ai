@@ -269,3 +269,37 @@ If a create/update script needs to change session state
 must save the prior value itself and explicitly set it back before the
 script ends — never lean on `SET LOCAL`'s transaction-scoped revert to
 do that for it.
+
+## RAISE: follow Postgres's own error-message style guide
+
+**Any `RAISE` that reports an error to a user (not a `DEBUG`/`LOG` trace
+aimed at a developer) must follow the PostgreSQL project's own [error
+style guide](https://www.postgresql.org/docs/current/error-style-guide.html)**
+— this project is a PostgreSQL extension, and its errors should read like
+one of Postgres's own, not stand out as a different voice. Points that
+come up most often in practice:
+
+- The primary message (`RAISE`'s format string, or `MESSAGE =` in a
+  `USING` clause) is a single short, factual phrase: no trailing period,
+  lowercase unless it starts with a proper noun/acronym or a quoted
+  identifier, no embedded newlines. Put elaboration in `DETAIL`, and an
+  actionable next step in `HINT` — don't cram everything into one
+  message.
+- Quote object names and values that are substituted in (`%s`/`%I`/`%L`
+  as appropriate) so a reader can tell where user data ends and the
+  message's own wording begins.
+- Distinguish "cannot" (never possible, a fixed limitation — "cannot
+  drop a system catalog") from "could not" (this attempt failed, for a
+  reason that isn't a fixed limitation — "could not open file"). Using
+  "cannot" for a transient/environmental failure overstates it as a hard
+  limitation.
+- Pick the `RAISE` level to match actual severity —
+  `EXCEPTION`/`WARNING`/`NOTICE`/`INFO`/`LOG`/`DEBUG` — rather than
+  defaulting to `EXCEPTION` for everything or `NOTICE` for everything.
+  Only `EXCEPTION` aborts the current (sub)transaction; reserve it for
+  conditions that actually must stop execution.
+- Assign a real `ERRCODE` (via `USING ERRCODE = ...`, or a bare SQLSTATE
+  string) when one of Postgres's existing error codes fits, instead of
+  leaving every raised error as the generic default — callers that
+  inspect `SQLSTATE` to react programmatically can't distinguish error
+  conditions that all share the same generic code.
