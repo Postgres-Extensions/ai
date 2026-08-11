@@ -248,3 +248,24 @@ document around it.
 to an extension (`ALTER EXTENSION ... UPDATE`). An extension's
 version-to-version scripts are "update scripts" — never "upgrade
 scripts."
+
+## Session state in create/update scripts must be reverted explicitly
+
+**Do not assume a `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script
+is the only thing running in its transaction, and do not rely on `SET
+LOCAL` to undo a session-state change the script makes.** Confirmed by
+direct testing: a value set via `SET LOCAL` inside an extension
+create/update script does **not** revert once the script itself
+finishes. `SET LOCAL` only reverts at the end of the *enclosing
+transaction* — and a create/update script cannot assume it's the only
+thing running in that transaction (another extension being
+installed/updated in the same transaction, a migration tool batching
+several DDL statements, etc.). A `SET LOCAL` made partway through stays
+in effect for everything else that runs afterward in that same
+transaction, not just for the rest of the script.
+
+If a create/update script needs to change session state
+(`client_min_messages`, `search_path`, or anything else `SET`table), it
+must save the prior value itself and explicitly set it back before the
+script ends — never lean on `SET LOCAL`'s transaction-scoped revert to
+do that for it.
