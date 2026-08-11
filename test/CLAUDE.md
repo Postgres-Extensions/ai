@@ -1,4 +1,6 @@
-# Extension testing: schema/search_path isolation
+# Extension testing conventions
+
+## Schema/search_path isolation
 
 **When testing a PostgreSQL extension, its own schema(s) must be absent
 from `search_path` for the *entire* test run — not "most of it," not
@@ -79,3 +81,31 @@ files: the file that sets it at the start, and the file that re-checks
 it at the end. A third match means some other test is touching
 `search_path`, which needs tracking down regardless of whether the
 end-of-run check's specific assertion happens to notice its effect.
+
+## Use the most specific pgTap assertion available
+
+**Prefer the most specific pgTap function that fits what's being
+checked, over a generic one wrapped around a hand-built condition.**
+pgTap ships targeted assertions for most things a test needs to check —
+`results_eq()`/`bag_eq()`/`set_eq()` for comparing query results,
+`throws_ok()`/`lives_ok()` for exception behavior, `has_table()`,
+`has_column()`, `col_type_is()`, `col_not_null()`, `function_returns()`,
+`is_empty()`, `row_eq()`, and more — rather than folding the same check
+into a boolean expression and asserting it with `ok()`, or manually
+comparing two result sets with `is()`.
+
+Why: on failure, a specific assertion's diagnostic output is tailored to
+what it checks — `results_eq()` prints the actual rows next to the
+expected ones, `set_eq()` calls out which elements were missing or
+extra, `col_type_is()` names the column and the type mismatch directly.
+Collapsing the same check into `ok(<boolean expression>)` throws that
+diagnostic away: on failure you get "not ok," full stop, with no insight
+into *why* — the debugging then has to start from scratch by re-deriving
+what the boolean was actually testing. The specific function also
+documents the invariant in the test's name, rather than requiring a
+reader to reconstruct it from the boolean expression's guts.
+
+`ok()`/`is()`/`isnt()` are still the right call when nothing more
+specific applies — this isn't a mandate to force-fit every check into
+one of pgTap's specialized functions, only to reach for one when it
+already matches the shape of what's being tested.
