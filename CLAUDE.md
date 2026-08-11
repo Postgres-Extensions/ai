@@ -252,9 +252,13 @@ script — if something else runs afterward in that same transaction
 (another extension installed in the same transaction, a migration tool
 batching several DDL statements), it inherits the change.
 
-If a script needs to change session state (`client_min_messages`,
-`search_path`, etc.), save the prior value and set it back explicitly
-before the script ends — don't lean on `SET LOCAL`'s revert to do that.
+If a script needs to change session state (`search_path`,
+`statement_timeout`, etc.), save the prior value and set it back
+explicitly before the script ends — don't lean on `SET LOCAL`'s revert
+to do that. (`client_min_messages` is the one exception: Postgres itself
+already manages it for the duration of an install/update script — see
+"Don't set `client_min_messages` inside an extension install script" in
+`CODE_STYLE.md`.)
 
 ## RAISE: follow Postgres's own error-message style guide
 
