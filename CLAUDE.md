@@ -139,6 +139,16 @@ accepted by the user.
     continuing to guess burns tokens without resolving the actual
     disagreement.
 
+## Before writing to memory, check whether it belongs in ../ai/ instead
+
+Before saving anything to a memory system (auto-memory, a session note,
+any other persistent-across-sessions store), check whether it's actually
+an org-wide convention that belongs in `../ai/` instead — memory is
+scoped to one agent/repo/session, so a convention saved only there is
+invisible to everyone else and gets re-derived inconsistently. Ask the
+user when genuinely unclear which it is, rather than deciding
+unilaterally.
+
 ## Testability
 
 Ask, before writing code, whether it could be tested in isolation (as a
@@ -256,3 +266,42 @@ document around it.
 to an extension (`ALTER EXTENSION ... UPDATE`). An extension's
 version-to-version scripts are "update scripts" — never "upgrade
 scripts."
+
+## Session state in create/update scripts must be reverted explicitly
+
+A `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script can't assume
+it's alone in its transaction, so it can't rely on `SET LOCAL` to undo a
+session-state change when the script ends. Confirmed by direct testing:
+`SET LOCAL` reverts at the end of the *enclosing transaction*, not the
+script — if something else runs afterward in that same transaction
+(another extension installed in the same transaction, a migration tool
+batching several DDL statements), it inherits the change.
+
+If a script needs to change session state (`search_path`,
+`statement_timeout`, etc.), save the prior value and set it back
+explicitly before the script ends — don't lean on `SET LOCAL`'s revert
+to do that. (`client_min_messages` is the one exception: Postgres itself
+already manages it for the duration of an install/update script — see
+"Don't set `client_min_messages` inside an extension install script" in
+`CODE_STYLE.md`.)
+
+## RAISE: follow Postgres's own error-message style guide
+
+Errors raised to a user should follow the PostgreSQL project's own
+[error style guide](https://www.postgresql.org/docs/current/error-style-guide.html)
+— this is a Postgres extension, and its errors should read like one of
+Postgres's own:
+
+- Primary message: a short, factual phrase — no trailing period,
+  lowercase unless starting with a proper noun/quoted identifier, no
+  embedded newlines. Elaboration goes in `DETAIL`, an actionable next
+  step in `HINT`.
+- Quote substituted object names/values (`%I`/`%L`) so user data is
+  distinguishable from the message's own wording.
+- "cannot" = never possible (a fixed limitation); "could not" = this
+  attempt failed. Don't use "cannot" for a transient/environmental
+  failure.
+- Match the `RAISE` level to actual severity — only `EXCEPTION` aborts
+  the (sub)transaction.
+- Assign a real `ERRCODE` when one of Postgres's existing codes fits,
+  rather than leaving every raised error at the generic default.

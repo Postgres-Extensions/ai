@@ -1,4 +1,6 @@
-# Extension testing: schema/search_path isolation
+# Extension testing conventions
+
+## Schema/search_path isolation
 
 **When testing a PostgreSQL extension, its own schema(s) must be absent
 from `search_path` for the *entire* test run — not "most of it," not
@@ -79,3 +81,35 @@ files: the file that sets it at the start, and the file that re-checks
 it at the end. A third match means some other test is touching
 `search_path`, which needs tracking down regardless of whether the
 end-of-run check's specific assertion happens to notice its effect.
+
+## Use the most specific pgTap assertion available
+
+Prefer the most specific pgTap function for what's being checked, rather
+than a generic `ok()`/`is()` wrapped around a hand-built condition —
+`results_eq()`/`set_eq()`/`bag_eq()` for query results,
+`throws_ok()`/`lives_ok()` for exceptions, `has_table()`,
+`has_column()`, `col_type_is()`, `function_returns()`, `row_eq()`, etc.
+A specific assertion's failure output is tailored to the check (e.g.
+`results_eq()` prints the actual rows next to the expected ones);
+folding the same check into `ok(<boolean>)` throws that away and leaves
+just "not ok."
+
+`ok()`/`is()`/`isnt()` are still right when nothing more specific
+applies.
+
+For arrays: `unnest()` into rows and compare with
+`set_eq()`/`set_has()` (order-insensitive, no duplicates) or
+`bag_eq()`/`bag_has()` (order-insensitive, duplicates count) for cases
+where `is()`'s exact array equality is stricter than what's actually
+being asserted.
+
+## Tests run as superuser by default — most extensions won't, in production
+
+`pg_regress`/`installcheck` runs the whole suite as superuser by
+default, which bypasses every privilege check (`GRANT`/`REVOKE`, RLS,
+ownership) — so a suite that never runs as anything else can pass while
+an extension has a real privilege bug a non-superuser caller would hit.
+Have the suite create a dedicated, less-privileged test role and run
+user-facing tests as that role (`SET ROLE` or a separate connection),
+granted only what a real consumer would actually have — not install/setup,
+which legitimately needs superuser.
