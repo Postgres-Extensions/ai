@@ -116,20 +116,13 @@ accepted by the user.
 
 ## Before writing to memory, check whether it belongs in ../ai/ instead
 
-Any time an agent is about to save something to a memory system (an
-auto-memory file, a session note, or any other persistent-across-sessions
-store) — pause and ask: is this actually an org-wide convention, and does
-it belong in `../ai/` rather than wherever memory happens to be scoped?
-Memory is typically private to one agent, one repo, or one session; a
-convention that actually applies across Postgres-Extensions repos is
-invisible to every other agent/session if it only lives there, and
-different sessions can end up re-deriving it inconsistently, or not at
-all.
-
-If there's any real doubt — not every memory is a candidate; this is
-about the ones that read like a rule anyone working in this org's repos
-should follow, not project-specific or session-specific detail — ask the
-user rather than deciding unilaterally which store it belongs in.
+Before saving anything to a memory system (auto-memory, a session note,
+any other persistent-across-sessions store), check whether it's actually
+an org-wide convention that belongs in `../ai/` instead — memory is
+scoped to one agent/repo/session, so a convention saved only there is
+invisible to everyone else and gets re-derived inconsistently. Ask the
+user when genuinely unclear which it is, rather than deciding
+unilaterally.
 
 ## Testability
 
@@ -251,55 +244,35 @@ scripts."
 
 ## Session state in create/update scripts must be reverted explicitly
 
-**Do not assume a `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script
-is the only thing running in its transaction, and do not rely on `SET
-LOCAL` to undo a session-state change the script makes.** Confirmed by
-direct testing: a value set via `SET LOCAL` inside an extension
-create/update script does **not** revert once the script itself
-finishes. `SET LOCAL` only reverts at the end of the *enclosing
-transaction* — and a create/update script cannot assume it's the only
-thing running in that transaction (another extension being
-installed/updated in the same transaction, a migration tool batching
-several DDL statements, etc.). A `SET LOCAL` made partway through stays
-in effect for everything else that runs afterward in that same
-transaction, not just for the rest of the script.
+A `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script can't assume
+it's alone in its transaction, so it can't rely on `SET LOCAL` to undo a
+session-state change when the script ends. Confirmed by direct testing:
+`SET LOCAL` reverts at the end of the *enclosing transaction*, not the
+script — if something else runs afterward in that same transaction
+(another extension installed in the same transaction, a migration tool
+batching several DDL statements), it inherits the change.
 
-If a create/update script needs to change session state
-(`client_min_messages`, `search_path`, or anything else `SET`table), it
-must save the prior value itself and explicitly set it back before the
-script ends — never lean on `SET LOCAL`'s transaction-scoped revert to
-do that for it.
+If a script needs to change session state (`client_min_messages`,
+`search_path`, etc.), save the prior value and set it back explicitly
+before the script ends — don't lean on `SET LOCAL`'s revert to do that.
 
 ## RAISE: follow Postgres's own error-message style guide
 
-**Any `RAISE` that reports an error to a user (not a `DEBUG`/`LOG` trace
-aimed at a developer) must follow the PostgreSQL project's own [error
-style guide](https://www.postgresql.org/docs/current/error-style-guide.html)**
-— this project is a PostgreSQL extension, and its errors should read like
-one of Postgres's own, not stand out as a different voice. Points that
-come up most often in practice:
+Errors raised to a user should follow the PostgreSQL project's own
+[error style guide](https://www.postgresql.org/docs/current/error-style-guide.html)
+— this is a Postgres extension, and its errors should read like one of
+Postgres's own:
 
-- The primary message (`RAISE`'s format string, or `MESSAGE =` in a
-  `USING` clause) is a single short, factual phrase: no trailing period,
-  lowercase unless it starts with a proper noun/acronym or a quoted
-  identifier, no embedded newlines. Put elaboration in `DETAIL`, and an
-  actionable next step in `HINT` — don't cram everything into one
-  message.
-- Quote object names and values that are substituted in (`%s`/`%I`/`%L`
-  as appropriate) so a reader can tell where user data ends and the
-  message's own wording begins.
-- Distinguish "cannot" (never possible, a fixed limitation — "cannot
-  drop a system catalog") from "could not" (this attempt failed, for a
-  reason that isn't a fixed limitation — "could not open file"). Using
-  "cannot" for a transient/environmental failure overstates it as a hard
-  limitation.
-- Pick the `RAISE` level to match actual severity —
-  `EXCEPTION`/`WARNING`/`NOTICE`/`INFO`/`LOG`/`DEBUG` — rather than
-  defaulting to `EXCEPTION` for everything or `NOTICE` for everything.
-  Only `EXCEPTION` aborts the current (sub)transaction; reserve it for
-  conditions that actually must stop execution.
-- Assign a real `ERRCODE` (via `USING ERRCODE = ...`, or a bare SQLSTATE
-  string) when one of Postgres's existing error codes fits, instead of
-  leaving every raised error as the generic default — callers that
-  inspect `SQLSTATE` to react programmatically can't distinguish error
-  conditions that all share the same generic code.
+- Primary message: a short, factual phrase — no trailing period,
+  lowercase unless starting with a proper noun/quoted identifier, no
+  embedded newlines. Elaboration goes in `DETAIL`, an actionable next
+  step in `HINT`.
+- Quote substituted object names/values (`%I`/`%L`) so user data is
+  distinguishable from the message's own wording.
+- "cannot" = never possible (a fixed limitation); "could not" = this
+  attempt failed. Don't use "cannot" for a transient/environmental
+  failure.
+- Match the `RAISE` level to actual severity — only `EXCEPTION` aborts
+  the (sub)transaction.
+- Assign a real `ERRCODE` when one of Postgres's existing codes fits,
+  rather than leaving every raised error at the generic default.

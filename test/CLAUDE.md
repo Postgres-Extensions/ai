@@ -84,55 +84,32 @@ end-of-run check's specific assertion happens to notice its effect.
 
 ## Use the most specific pgTap assertion available
 
-**Prefer the most specific pgTap function that fits what's being
-checked, over a generic one wrapped around a hand-built condition.**
-pgTap ships targeted assertions for most things a test needs to check —
-`results_eq()`/`bag_eq()`/`set_eq()` for comparing query results,
-`throws_ok()`/`lives_ok()` for exception behavior, `has_table()`,
-`has_column()`, `col_type_is()`, `col_not_null()`, `function_returns()`,
-`is_empty()`, `row_eq()`, and more — rather than folding the same check
-into a boolean expression and asserting it with `ok()`, or manually
-comparing two result sets with `is()`.
+Prefer the most specific pgTap function for what's being checked, rather
+than a generic `ok()`/`is()` wrapped around a hand-built condition —
+`results_eq()`/`set_eq()`/`bag_eq()` for query results,
+`throws_ok()`/`lives_ok()` for exceptions, `has_table()`,
+`has_column()`, `col_type_is()`, `function_returns()`, `row_eq()`, etc.
+A specific assertion's failure output is tailored to the check (e.g.
+`results_eq()` prints the actual rows next to the expected ones);
+folding the same check into `ok(<boolean>)` throws that away and leaves
+just "not ok."
 
-Why: on failure, a specific assertion's diagnostic output is tailored to
-what it checks — `results_eq()` prints the actual rows next to the
-expected ones, `set_eq()` calls out which elements were missing or
-extra, `col_type_is()` names the column and the type mismatch directly.
-Collapsing the same check into `ok(<boolean expression>)` throws that
-diagnostic away: on failure you get "not ok," full stop, with no insight
-into *why* — the debugging then has to start from scratch by re-deriving
-what the boolean was actually testing. The specific function also
-documents the invariant in the test's name, rather than requiring a
-reader to reconstruct it from the boolean expression's guts.
+`ok()`/`is()`/`isnt()` are still right when nothing more specific
+applies.
 
-`ok()`/`is()`/`isnt()` are still the right call when nothing more
-specific applies — this isn't a mandate to force-fit every check into
-one of pgTap's specialized functions, only to reach for one when it
-already matches the shape of what's being tested.
-
-The `set_*`/`bag_*` functions are also useful for comparing arrays:
-`unnest()` the array into rows and compare that against the expected
-rows with `set_eq()`/`set_ne()`/`set_has()` (order doesn't matter, no
-duplicates) or `bag_eq()`/`bag_ne()`/`bag_has()` (order doesn't matter,
-duplicates do) — for the cases where `is()`'s exact, order-sensitive
-array equality is stricter than what's actually being asserted.
+For arrays: `unnest()` into rows and compare with
+`set_eq()`/`set_has()` (order-insensitive, no duplicates) or
+`bag_eq()`/`bag_has()` (order-insensitive, duplicates count) for cases
+where `is()`'s exact array equality is stricter than what's actually
+being asserted.
 
 ## Tests run as superuser by default — most extensions won't, in production
 
-**By default, `pg_regress`/`installcheck` connects and runs the entire
-suite as a superuser — but most extensions are not actually used that
-way in production.** A superuser bypasses every privilege check
-(`GRANT`/`REVOKE`, row-level security, ownership checks, and more), so a
-test suite that only ever runs as superuser can pass while an extension
-has a real privilege bug: a function that should be callable by a
-regular user but isn't, a check that's supposed to block an
-unprivileged user but doesn't because the suite never actually tried it
-as one.
-
-General best practice: have the suite create a dedicated, less
-privileged test role and run at least the tests that exercise
-user-facing behavior (as opposed to install/setup, which legitimately
-needs superuser) as that role instead — `SET ROLE` or a separate
-connection, whichever the suite's harness supports. Grant that role only
-what a real, non-superuser consumer of the extension would actually
-have, not everything the superuser setup happened to leave lying around.
+`pg_regress`/`installcheck` runs the whole suite as superuser by
+default, which bypasses every privilege check (`GRANT`/`REVOKE`, RLS,
+ownership) — so a suite that never runs as anything else can pass while
+an extension has a real privilege bug a non-superuser caller would hit.
+Have the suite create a dedicated, less-privileged test role and run
+user-facing tests as that role (`SET ROLE` or a separate connection),
+granted only what a real consumer would actually have — not install/setup,
+which legitimately needs superuser.
