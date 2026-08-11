@@ -21,8 +21,7 @@ git clone https://github.com/Postgres-Extensions/ai.git ../ai
 `../ai/` may be a checkout shared with other concurrent agents/sessions —
 it can move even on a session where you never ran `git pull` yourself, so
 a pull returning "already up to date" is not proof you're actually
-current. Refresh it at the start of every session, and again at least
-once per hour during a long-running one:
+current. At the start of every session:
 
 ```bash
 git -C ../ai pull --ff-only
@@ -39,6 +38,38 @@ Note the commit `../ai/` is at the first time you read its docs each
 session, and compare against that noted commit on every later check. If
 anything shows up, re-read the affected file(s) before continuing to rely
 on your in-context memory of them.
+
+### Re-checking during a long session: use a scheduler, not memory
+
+A plain instruction to "check again in an hour" sitting in context is
+not enough by itself — nothing forces you to act on a wall-clock cadence
+mid-session, so in practice the first check happens and later ones
+quietly don't. If your tool has a scheduler that actually re-enqueues a
+prompt at a future time (Claude Code's `CronCreate`), use it instead of
+relying on remembering:
+
+- **At the start of a session, check for an existing pair of jobs before
+  creating new ones** — `CronList`, matching on the `[ai-sync]` /
+  `[ai-sync-renew]` prompt prefixes below. A resumed session may already
+  have them running; creating a second pair on top just duplicates the
+  check.
+- **Sync job**: recurring, durable, roughly hourly (pick the cron minute
+  off `:00`/`:30` per `CronCreate`'s own guidance on avoiding
+  thundering-herd minutes). Prompt prefixed `[ai-sync]`, instructing:
+  pull `../ai`, diff since the last noted SHA, re-read anything that
+  changed.
+- **Renewal job**: recurring, durable, every few days — comfortably
+  under `CronCreate`'s 7-day auto-expiry (e.g. every 3 days leaves margin
+  even across a month-boundary cron quirk). Prompt prefixed
+  `[ai-sync-renew]`, instructing: list jobs, delete the current sync and
+  renewal jobs (matched by their prefixes), then recreate both fresh.
+  This is what keeps the pair alive indefinitely — skip it and both jobs
+  silently expire after 7 days, and the checking stops with no warning.
+
+This mechanism is Claude Code-specific. An agent whose tool has no
+equivalent scheduler has no way to actually enforce the cadence, and
+should say so rather than silently falling back to an easily-forgotten
+"remember to check" habit.
 
 ## Related docs in this repo
 
