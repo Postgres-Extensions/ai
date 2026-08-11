@@ -41,23 +41,17 @@ on your in-context memory of them.
 
 ### Re-checking during a long session: use a scheduler, not memory
 
-A plain instruction to "check again in an hour" sitting in context is
-not enough by itself — nothing forces you to act on a wall-clock cadence
-mid-session, so in practice the first check happens and later ones
-quietly don't. If your tool has a scheduler that actually re-enqueues a
-prompt at a future time (Claude Code's `CronCreate`), use it instead of
-relying on remembering:
+Written instructions don't survive a long session on their own — nothing
+forces action on a wall-clock cadence mid-session without something to
+enforce it. If your tool has a scheduler that actually re-enqueues a
+prompt at a future time (Claude Code's `CronCreate`), use it:
 
-- **At the start of a session, check for an existing pair of jobs before
-  creating new ones** — `CronList`, matching on the `[ai-sync]` /
-  `[ai-sync-renew]` prompt prefixes below. A resumed session may already
-  have them running; creating a second pair on top just duplicates the
-  check.
-- **Sync job**: recurring, durable, roughly hourly (pick the cron minute
-  off `:00`/`:30` per `CronCreate`'s own guidance on avoiding
-  thundering-herd minutes). Prompt prefixed `[ai-sync]`, instructing:
-  pull `../ai`, diff since the last noted SHA, re-read anything that
-  changed.
+- **Sync job**: recurring, durable, roughly hourly — use the current
+  minute (whatever it is when you create the job) as the cron minute
+  rather than picking one; nudge it by a minute if it happens to land
+  exactly on `:00`/`:30` (see `CronCreate`'s own note on thundering-herd
+  minutes). Prompt prefixed `[ai-sync]`, instructing: pull `../ai`, diff
+  since the last noted SHA, re-read anything that changed.
 - **Renewal job**: recurring, durable, every few days — comfortably
   under `CronCreate`'s 7-day auto-expiry (e.g. every 3 days leaves margin
   even across a month-boundary cron quirk). Prompt prefixed
