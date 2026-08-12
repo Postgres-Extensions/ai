@@ -50,6 +50,21 @@ from scratch under time pressure:
   subsequent SQL-touching PR adds whatever `ALTER ...`/`CREATE OR REPLACE
   ...` statements are needed to bring an install on the last released
   version up to your changes.
+  - **Distributions that provide more than one extension** (see
+    "Multi-extension distributions" under step 3): every extension gets
+    one of these files, present at all times between releases — not just
+    the extension(s) a given PR happens to touch. An extension with
+    nothing pending yet gets a genuine no-op placeholder (a comment
+    explaining why, no actual statements). This is what makes the
+    per-extension release decision in step 3 possible: at release time,
+    each extension's own file is inspected to decide whether *that*
+    extension needs a new version at all.
+  - The placeholder is required even when nothing has changed, not
+    merely tidy: Postgres's version-graph resolution needs an actual
+    `sql/<ext>--<from>--<to>.sql` file to exist for `ALTER EXTENSION ...
+    UPDATE` to have *any* path between two versions, regardless of
+    whether the content would be a no-op — confirmed directly (`has no
+    update path from version X to version Y` without one).
 
 This is the flip side of the `stable` pseudo-version described in
 `CLAUDE.md`'s "Version-specific SQL files" — that section covers why it's
@@ -115,7 +130,9 @@ still matches what that version actually shipped:
 ## 3. Decide the version and what to track
 
 - [ ] Pick the new version (semantic versioning, unprefixed — e.g. `1.0.0`,
-      never `v1.0.0`).
+      never `v1.0.0`). This is always the **distribution** version, and it
+      always advances at every release, whether or not any individual
+      extension's own SQL changed.
 - [ ] Some repos track two version numbers that can differ: the
       **distribution version** (`META.in.json`'s top-level `version`, what
       PGXN.org lists a release under) and the **extension version**
@@ -124,6 +141,40 @@ still matches what that version actually shipped:
       that distinction, decide here whether the extension version needs to
       move at all, or only the distribution version does (e.g. a
       packaging/CI-only fix with no SQL changes).
+
+### Multi-extension distributions
+
+A single distribution can provide more than one extension (`META.in.json`'s
+`provides` map has more than one entry) — each with its *own*
+`default_version`, moving independently of the others and of the
+distribution version. Don't bump every extension's version just because
+the distribution's is moving:
+
+- The distribution version **always** advances at every release — it
+  identifies this specific release on PGXN, regardless of which
+  extension(s) inside it actually changed.
+- For **each** extension the distribution provides, decide independently
+  whether *that* extension's version moves, by inspecting its own
+  `sql/<ext>--<last-released-version>--stable.sql` (see "Ongoing
+  development" above — every extension keeps one of these present
+  between releases specifically so this inspection is always possible):
+  - **Real content** (actual `ALTER ...`/`CREATE OR REPLACE ...`
+    statements beyond the no-op placeholder comment): this extension is
+    part of this release. Its new version is the **same as the new
+    distribution version** — extension versions in a multi-extension
+    distribution track the distribution's version number when they move
+    at all; they don't keep an independent numbering scheme of their
+    own. Follow step 4 for this extension: bump `default_version`, `git
+    mv` its update script to the real name, finish it.
+  - **Genuine no-op** (still just the placeholder comment, nothing
+    functional): this extension is *not* part of this release. It ships
+    at its previous version, unchanged, inside the new distribution
+    release — see step 4's explicit instruction to revert its
+    `default_version` back to that previous version (not leave it at
+    `stable`, and not move it to the new distribution version either).
+    Its `--stable.sql` update script stays exactly as it is; step 6's
+    `.gitattributes`/`export-ignore` note keeps it out of the release
+    archive.
 - [ ] Decide whether to commit the generated versioned install script for
       this release. Default to committing it — for a small extension the
       storage cost is negligible, and it's the only thing that makes "can I
@@ -143,33 +194,48 @@ still matches what that version actually shipped:
 > touch a frozen, already-shipped version's file. Stamping a real version
 > here points that same generation rule at the real version's file instead.
 > The moment this release is merged you **must** flip `default_version`
-> back to `stable` (step 7). If you forget, the next source edit on master
+> back to `stable` (step 8). If you forget, the next source edit on master
 > will regenerate — and corrupt — the just-released version's install file.
+> This applies per extension, not just once — see below for a distribution
+> with more than one.
 
-- [ ] If the extension version is moving, bump `default_version` in
-      `<ext>.control` by hand. If this repo distinguishes distribution vs.
-      extension version and only the distribution version is moving, leave
-      `default_version` alone.
+For each extension this distribution provides (see "Multi-extension
+distributions" under step 3 — for a single-extension repo there's just the
+one):
+
+- [ ] Moving this release (its `--stable.sql` update script has real
+      content): bump `default_version` in `<ext>.control` by hand, to the
+      **same value as the new distribution version** (see step 3). Finish
+      its update script from the previous version to the new one; confirm
+      `ALTER EXTENSION ... UPDATE` actually reaches the new version from
+      the previous one, on multiple PostgreSQL majors. `git mv` the
+      `--stable` update script to
+      `sql/<ext>--<last-released-version>--<new-version>.sql[.in]`.
+- [ ] **Not** moving this release (its `--stable.sql` update script is
+      still a genuine no-op): set `default_version` in `<ext>.control`
+      back to its own last real released version — **not** left at
+      `stable` (a tagged release must never have any extension's
+      `default_version` be the literal string `stable`), and **not**
+      moved to the new distribution version either, since nothing about
+      this extension actually changed. Leave its `--stable.sql` update
+      script alone (still named `--stable`, not renamed) — step 6's
+      `.gitattributes`/`export-ignore` note keeps it out of the release
+      archive despite still existing on disk/in git.
 - [ ] Bump the version in `META.in.json` — the top-level `version` (always,
-      the distribution version) and the extension's entry under `provides`
-      (only if it's moving). Do **not** touch `meta-spec.version` — that's
-      the PGXN metadata spec version, always `1.0.0` regardless of this
-      distribution's version. `META.json`, `control.mk`, and `meta.mk`
-      (which feeds `PGXNVERSION`) regenerate via `make` — never hand-edit
-      `META.json` directly.
+      the distribution version) and each moving extension's entry under
+      `provides` (leave an unchanged extension's entry alone). Do **not**
+      touch `meta-spec.version` — that's the PGXN metadata spec version,
+      always `1.0.0` regardless of this distribution's version.
+      `META.json`, `control.mk`, and `meta.mk` (which feeds `PGXNVERSION`)
+      regenerate via `make` — never hand-edit `META.json` directly.
 - [ ] Advance `release_status` in `META.in.json` as appropriate (`unstable`
-      → `testing` → `stable`).
-- [ ] If the extension version moved: finish the update script from the
-      previous version to the new one; confirm `ALTER EXTENSION ... UPDATE`
-      actually reaches the new version from the previous one, on multiple
-      PostgreSQL majors.
+      → `testing` → `stable`). This is one value for the whole
+      distribution, not per extension.
 - [ ] Rename the changelog's top `STABLE`/`stable` heading to the new
       (distribution) version number, matching its dashes/underline length
       if the format uses one.
-- [ ] `git mv` the `--stable` update script to
-      `sql/<ext>--<last-released-version>--<new-version>.sql[.in]`.
-- [ ] Commit the version bump + changelog + renamed update script together
-      in one commit.
+- [ ] Commit the version bump(s) + changelog + renamed update script(s)
+      together in one commit.
 
 ## 5. Verify
 
@@ -209,6 +275,17 @@ still matches what that version actually shipped:
       included — if `.gitattributes` exists it must be committed, or `dist`
       aborts (`git archive` only honors `export-ignore` for committed
       files). `make forcedist` = `forcetag` + `dist`.
+      - For a multi-extension distribution, any extension not moving this
+        release still has its `sql/<ext>--<version>--stable.sql` update
+        script sitting in the tree (step 4 left it un-renamed). A
+        `.gitattributes` rule marking that pattern `export-ignore` keeps
+        it out of the archive — a tagged release must never ship a file
+        only reachable via the `stable` pseudo-version, since nothing in
+        that release actually has `default_version = stable`. A blanket
+        glob (e.g. `sql/*--stable.sql export-ignore`) is safe here despite
+        matching across the update script's own `--`: by archive time, any
+        extension that *did* move already had its file renamed away from
+        that exact name, so only genuine no-ops can still match it.
 
 ## 7. Upload to PGXN (manual)
 
@@ -217,16 +294,23 @@ still matches what that version actually shipped:
 - [ ] Verify the new version shows up at `https://pgxn.org/dist/<name>/`
       (indexing can take a few minutes).
 
-## 8. Return master to `stable` (CRITICAL — do not skip if the extension version moved)
+## 8. Return master to `stable` (CRITICAL — do not skip if any extension version moved)
 
-- [ ] As soon as the release is merged, flip `default_version` back to
-      `stable` in `<ext>.control`, open a fresh top `STABLE`/`stable`
-      section in the changelog, and re-seed a
-      `sql/<ext>--<this-release>--stable.sql[.in]` update script
-      (content-identical to the source at this point — it exists purely so
-      the update path to `stable` is always available) for the next cycle.
-      Leaving master stamped at the real version means the next source edit
-      regenerates and corrupts the just-released install file.
+- [ ] As soon as the release is merged, for **every** extension this
+      distribution provides (moved this release or not — an unmoved
+      extension was reverted to its own last real version for the archive
+      in step 4, and needs to come back to `stable` here just like a moved
+      one, or the *next* source edit corrupts it exactly the same way):
+      flip `default_version` back to `stable` in `<ext>.control`, and
+      re-seed a `sql/<ext>--<its-current-real-version>--stable.sql[.in]`
+      update script (content-identical to the source at this point — it
+      exists purely so the update path to `stable` is always available)
+      for the next cycle. `<its-current-real-version>` is the version each
+      extension actually ships at coming out of this release — the new
+      one for an extension that moved, the same old one for an extension
+      that didn't.
+- [ ] Open a fresh top `STABLE`/`stable` section in the changelog (one per
+      distribution, not per extension).
 - [ ] Keep this PR's description small — "Reset version back to `stable`
       after release." is enough; it's a mechanical, low-risk step that
       doesn't need the rationale a real content change would.
