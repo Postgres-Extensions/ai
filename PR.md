@@ -146,6 +146,12 @@ conflate them (see "A PR is not a branch" above).**
   comment anyone can check.
 - Do not hard-wrap paragraphs at a fixed column — write each paragraph as
   a single long line, with a blank line between paragraphs.
+- Don't build the description by reusing a commit message body (e.g.
+  piping `git log -1 --format=%b` into `gh pr create --body-file`) —
+  commit bodies are conventionally wrapped at ~72 columns while
+  descriptions must not be, and GitHub builds the squash-merge commit
+  message from the description, so the wrapping lands right back in the
+  commit you were trying to reuse.
 - Length past the opening is fine — backstory and detail are often worth
   keeping. If there's enough of it to justify the length, give it real
   structure (headers, bullet lists, separate sections), not one
@@ -250,6 +256,10 @@ conflate them (see "A PR is not a branch" above).**
 - Don't narrate the journey — end state and why it matters, not how you
   got there. Don't over-explain the obvious.
 - Backticks around code identifiers/commands.
+- A commit body IS wrapped at ~72 columns, per normal git convention —
+  the opposite of a PR description. The two formats aren't
+  interchangeable, so write the description separately rather than
+  reusing the commit body verbatim.
 - Commit via heredoc, never `-i` flags.
 - `Co-Authored-By: Claude <noreply@anthropic.com>` is fine; no "Generated
   with Claude Code" line.
