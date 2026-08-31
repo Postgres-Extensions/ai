@@ -33,8 +33,11 @@ directly:
 ../ai/bin/check-upstream-sync <sha-you-last-read-at>
 ```
 
-It prints the new commits and exits non-zero when there are any it
-hasn't seen; it prints nothing and exits 0 otherwise.
+It exits 0 with no output when there are no new commits, exits 1 with
+the new commits on stdout when there are, and exits 2 with an error on
+stderr if the check itself fails (e.g. no remote points at
+`Postgres-Extensions/ai`) — don't mistake a broken check for a
+permanent stream of new content.
 
 Note the commit `../ai/` is at the first time you read its docs each
 session, and pass that noted commit to the script on every later check.
