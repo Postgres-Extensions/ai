@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+#
+# bin/check-upstream-sync - Report commits on Postgres-Extensions/ai's
+# default branch not yet reachable from a given baseline commit
+#
+# A checkout's `origin` is often a fork that lags upstream, so `git pull
+# --ff-only` against `origin` can report "already up to date" while
+# Postgres-Extensions/ai has moved on -- this looks up whichever remote
+# actually points at Postgres-Extensions/ai (by URL, not by name) and
+# compares against that, so it works the same whether this checkout's
+# `origin` is the fork or upstream itself.
+#
+# Usage: bin/check-upstream-sync <baseline-sha>
+#
+#   baseline-sha  Commit previously noted as "read up to". Commits
+#                 reachable from upstream's default branch but not from
+#                 this SHA are printed.
+#
+# Exits non-zero and prints the new commits when there are any; exits 0
+# with no output when there are none.
+
+set -euo pipefail
+
+baseline="${1:?usage: bin/check-upstream-sync <baseline-sha>}"
+
+remote=$(git remote -v | awk '$2 ~ /[\/:]Postgres-Extensions\/ai(\.git)?$/ { print $1; exit }')
+: "${remote:?no remote points at Postgres-Extensions/ai}"
+
+git fetch --quiet "$remote"
+
+default_branch=$(git ls-remote --symref "$remote" HEAD |
+    awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }')
+: "${default_branch:?could not determine default branch for $remote}"
+
+new_commits=$(git log --oneline "$baseline..$remote/$default_branch")
+
+if [[ -n "$new_commits" ]]; then
+    echo "$new_commits"
+    exit 1
+fi
