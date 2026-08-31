@@ -38,10 +38,17 @@ if [[ -z "$remote" ]]; then
     exit 2
 fi
 
-git -C "$repo" fetch --quiet "$remote"
+if ! fetch_err=$(git -C "$repo" fetch --quiet "$remote" 2>&1); then
+    echo "check-upstream-sync: $fetch_err" >&2
+    exit 2
+fi
 
-default_branch=$(git -C "$repo" ls-remote --symref "$remote" HEAD |
-    awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }')
+if ! ls_remote_out=$(git -C "$repo" ls-remote --symref "$remote" HEAD 2>&1); then
+    echo "check-upstream-sync: $ls_remote_out" >&2
+    exit 2
+fi
+
+default_branch=$(awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }' <<<"$ls_remote_out")
 if [[ -z "$default_branch" ]]; then
     echo "check-upstream-sync: could not determine default branch for $remote" >&2
     exit 2
