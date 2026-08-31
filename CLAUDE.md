@@ -19,25 +19,27 @@ git clone https://github.com/Postgres-Extensions/ai.git ../ai
 ## Keep ../ai/ up to date
 
 `../ai/` may be a checkout shared with other concurrent agents/sessions —
-it can move even on a session where you never ran `git pull` yourself, so
-a pull returning "already up to date" is not proof you're actually
-current. At the start of every session:
+it can move even on a session where you never checked yourself. Worse, a
+typical checkout's `origin` is a personal fork that itself lags the real
+upstream, so `git -C ../ai pull --ff-only` can report "already up to
+date" while `Postgres-Extensions/ai` has moved on — a no-op pull is not
+proof you're actually current. At the start of every session, use
+`../ai/bin/check-upstream-sync` instead: it resolves whichever remote
+actually points at `Postgres-Extensions/ai` (by URL, not by name, so it
+works whether that's `origin` or `upstream`) and compares against that
+directly:
 
 ```bash
-git -C ../ai pull --ff-only
+../ai/bin/check-upstream-sync <sha-you-last-read-at>
 ```
 
-Then check whether HEAD has actually moved since you last read these
-docs — don't assume nothing changed just because the pull was a no-op:
-
-```bash
-git -C ../ai log --oneline <sha-you-last-read-at>..HEAD
-```
+It prints the new commits and exits non-zero when there are any it
+hasn't seen; it prints nothing and exits 0 otherwise.
 
 Note the commit `../ai/` is at the first time you read its docs each
-session, and compare against that noted commit on every later check. If
-anything shows up, re-read the affected file(s) before continuing to rely
-on your in-context memory of them.
+session, and pass that noted commit to the script on every later check.
+If anything shows up, re-read the affected file(s) before continuing to
+rely on your in-context memory of them.
 
 ### Re-checking during a long session: use a scheduler, not memory
 
@@ -50,8 +52,9 @@ prompt at a future time (Claude Code's `CronCreate`), use it:
   minute (whatever it is when you create the job) as the cron minute
   rather than picking one; nudge it by a minute if it happens to land
   exactly on `:00`/`:30` (see `CronCreate`'s own note on thundering-herd
-  minutes). Prompt prefixed `[ai-sync]`, instructing: pull `../ai`, diff
-  since the last noted SHA, re-read anything that changed.
+  minutes). Prompt prefixed `[ai-sync]`, instructing: run
+  `../ai/bin/check-upstream-sync` against the last noted SHA, re-read
+  anything it reports.
 - **Renewal job**: recurring, durable, every few days — comfortably
   under `CronCreate`'s 7-day auto-expiry (e.g. every 3 days leaves margin
   even across a month-boundary cron quirk). Prompt prefixed
