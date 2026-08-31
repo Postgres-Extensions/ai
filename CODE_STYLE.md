@@ -117,6 +117,20 @@ printed as a warning into actual output.
 Short blocks — still visible on screen alongside their `\else`/`\endif` —
 don't need this.
 
+## Nested dollar quoting
+
+A dollar-quoted string nested inside another must use a tag distinct
+from the enclosing one. Reusing the outer tag closes the outer string
+right there, and the rest of what was meant to be its body gets
+parsed as bare SQL instead.
+
+This includes text inside comments in the nested body — the lexer is
+just scanning for the closing tag and doesn't skip comments to find
+it.
+
+Just pick a distinct tag (e.g. `$body$` nested inside `$$`); it isn't
+worth a comment explaining why the tag differs.
+
 ## References to PRs and issues in committed files
 
 A reference to a GitHub PR or issue inside a **committed file** (code
