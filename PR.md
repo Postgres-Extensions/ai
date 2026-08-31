@@ -77,6 +77,15 @@ conflate them (see "A PR is not a branch" above).**
   unnecessarily.
 - `upstream` is otherwise only for the default branch, release tags, and
   branches created directly there (e.g. a stack).
+- Before opening a PR that depends on another still-open PR, say so and
+  get the user's decision on structure first. A real stack needs its
+  branches upstream, not on a fork, and that can't be retrofitted: a
+  PR's head repository can't change after creation, so converting a
+  fork-based PR into a stacked one means closing and recreating it,
+  losing its review thread.
+- Opening the dependent PR against the default branch and just noting
+  the dependency in its description isn't a stack — its diff includes
+  the parent PR's changes until the parent merges.
 - Whether a fork-hosted branch changes anything about how CI runs depends
   entirely on how that repo's `ci.yml` is written — a trust gate keyed on
   `head.repo.owner.login`, a `pull_request_target` vs. `pull_request`
