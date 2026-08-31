@@ -250,6 +250,13 @@ test-coverage value. Gitignore it instead of the one-time `rm` their docs
 recommend for a skipped version. This belongs in pgxntool's own docs
 long-term; this is the canonical statement of it until it lands there.
 
+Name the gitignore entry exactly (`sql/<ext>--stable.sql`), not a glob like
+`sql/*--stable.sql` — that `*` also matches across the second `--` in the
+update-*to*-stable script's own name (`sql/<ext>--<last-released>--stable.sql`,
+see `RELEASE.md`'s "Ongoing development" section), which must stay
+committed. A glob there silently sweeps up the update script too (caught
+directly: it stopped showing as untracked right after being created).
+
 ### PostgreSQL version support policy
 
 Never support a fresh install on a PostgreSQL version where the
