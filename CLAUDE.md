@@ -274,6 +274,24 @@ to an extension (`ALTER EXTENSION ... UPDATE`). An extension's
 version-to-version scripts are "update scripts" — never "upgrade
 scripts."
 
+### `pg_upgrade` safety vs. the common case
+
+Any lock, guard, repair mechanism, or other logic that assumes or detects
+"did a `pg_upgrade` just happen" must be correct under the assumption that
+a client can connect and start issuing calls the instant the upgraded
+cluster starts accepting connections — nothing about `pg_upgrade` prevents
+that, so it's the only assumption that's actually safe to design for.
+
+That correctness requirement doesn't mean concurrent access during the
+upgrade window is the case to design *around*. In practice `pg_upgrade` is
+run during a maintenance window with the application already stopped, so
+there normally is no concurrent access at all — the immediate-access case
+is the safety net, not the expected situation. This changes how a
+trade-off should be weighed: a mechanism that only pays an extra-work cost
+in the rare event a client connects immediately is a reasonable design; a
+mechanism that pays that same cost on every upgrade because it was built
+as if concurrent access were the normal case is not.
+
 ## Session state in create/update scripts must be reverted explicitly
 
 A `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script can't assume
