@@ -10,29 +10,54 @@
 # compares against that, so it works the same whether this checkout's
 # `origin` is the fork or upstream itself.
 #
+# Operates on this script's own repo (resolved from its own path), not
+# on the caller's cwd -- so it can be invoked as `../ai/bin/check-
+# upstream-sync` from a consuming repo, same as running it directly
+# inside the ai checkout.
+#
 # Usage: bin/check-upstream-sync <baseline-sha>
 #
 #   baseline-sha  Commit previously noted as "read up to". Commits
 #                 reachable from upstream's default branch but not from
 #                 this SHA are printed.
 #
-# Exits non-zero and prints the new commits when there are any; exits 0
-# with no output when there are none.
+# Exit codes:
+#   0  up to date, no new commits (nothing printed)
+#   1  new commits found (printed to stdout, one per line)
+#   2  the check itself failed (message printed to stderr)
 
 set -euo pipefail
 
 baseline="${1:?usage: bin/check-upstream-sync <baseline-sha>}"
 
-remote=$(git remote -v | awk '$2 ~ /[\/:]Postgres-Extensions\/ai(\.git)?$/ { print $1; exit }')
-: "${remote:?no remote points at Postgres-Extensions/ai}"
+repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
-git fetch --quiet "$remote"
+remote=$(git -C "$repo" remote -v | awk '$2 ~ /[\/:]Postgres-Extensions\/ai(\.git)?$/ { print $1; exit }')
+if [[ -z "$remote" ]]; then
+    echo "check-upstream-sync: no remote points at Postgres-Extensions/ai" >&2
+    exit 2
+fi
 
-default_branch=$(git ls-remote --symref "$remote" HEAD |
-    awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }')
-: "${default_branch:?could not determine default branch for $remote}"
+if ! fetch_err=$(git -C "$repo" fetch --quiet "$remote" 2>&1); then
+    echo "check-upstream-sync: $fetch_err" >&2
+    exit 2
+fi
 
-new_commits=$(git log --oneline "$baseline..$remote/$default_branch")
+if ! ls_remote_out=$(git -C "$repo" ls-remote --symref "$remote" HEAD 2>&1); then
+    echo "check-upstream-sync: $ls_remote_out" >&2
+    exit 2
+fi
+
+default_branch=$(awk '/^ref:/ { sub("refs/heads/", "", $2); print $2 }' <<<"$ls_remote_out")
+if [[ -z "$default_branch" ]]; then
+    echo "check-upstream-sync: could not determine default branch for $remote" >&2
+    exit 2
+fi
+
+if ! new_commits=$(git -C "$repo" log --oneline "$baseline..$remote/$default_branch" 2>&1); then
+    echo "check-upstream-sync: $new_commits" >&2
+    exit 2
+fi
 
 if [[ -n "$new_commits" ]]; then
     echo "$new_commits"
