@@ -41,6 +41,12 @@ session, and pass that noted commit to the script on every later check.
 If anything shows up, re-read the affected file(s) before continuing to
 rely on your in-context memory of them.
 
+Whenever a real user turn lands and the sync/renewal pair isn't currently
+armed (check via `CronList`), recreate it per the recipe below — not only
+at session start: a self-paused pair (the idle case below) needs the same
+bootstrap to re-arm on the next real activity within the same long-lived
+session, not just on a fresh session start.
+
 ### Re-checking during a long session: use a scheduler, not memory
 
 Written instructions don't survive a long session on their own — nothing
@@ -52,9 +58,18 @@ prompt at a future time (Claude Code's `CronCreate`), use it:
   minute (whatever it is when you create the job) as the cron minute
   rather than picking one; nudge it by a minute if it happens to land
   exactly on `:00`/`:30` (see `CronCreate`'s own note on thundering-herd
-  minutes). Prompt prefixed `[ai-sync]`, instructing: run
-  `../ai/bin/check-upstream-sync` against the last noted SHA, re-read
-  anything it reports.
+  minutes). Prompt prefixed `[ai-sync]`, instructing: first check the
+  transcript for a real user message between the previous `[ai-sync]`/
+  `[ai-sync-renew]` fire and now — a `CronCreate` fire only means the REPL
+  was idle, not that anyone's present, and this is the only signal
+  available for actual human presence. If a real turn happened, proceed
+  as normal: run `../ai/bin/check-upstream-sync` against the last noted
+  SHA, re-read anything it reports. If no real turn happened, the session
+  is idle — skip the sync check, list jobs, delete both the `[ai-sync]`
+  and `[ai-sync-renew]` jobs (matched by their prefixes), and stop.
+  Don't recreate them; polling hourly with nobody reading the result
+  isn't worth it. (Re-arming on the next real turn is handled by the
+  bootstrap step above.)
 - **Renewal job**: recurring, durable, every few days — comfortably
   under `CronCreate`'s 7-day auto-expiry (e.g. every 3 days leaves margin
   even across a month-boundary cron quirk). Prompt prefixed
