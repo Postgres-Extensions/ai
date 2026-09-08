@@ -211,6 +211,13 @@ conflate them (see "A PR is not a branch" above).**
 - After a squash-merge upstream of your branch, verify ancestry directly
   (`git merge-base --is-ancestor <branch> <new-base>`) — cached
   mergeable/merge-state fields lag.
+- Told a PR needs updating and don't see the changes it implies locally?
+  Verify your local checkout is actually up to date *against the real
+  upstream remote* before concluding the platform's mergeable/conflict
+  status is stale or wrong. A fork checkout's `origin` commonly lags the
+  real upstream — comparing against `origin/master` instead of
+  `upstream/master` can make a genuine conflict look like a false
+  positive. Fetch `upstream` and re-test the merge against it.
 - `--force-with-lease`, never a bare `--force`, after a rebase.
 
 ## Rebasing a PR stack
