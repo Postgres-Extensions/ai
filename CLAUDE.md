@@ -215,7 +215,7 @@ else with it.
 ## Untracked files must be resolved, not left alone
 
 Every file `git status` reports as untracked must end up in exactly one of
-three states, not linger unaddressed: committed, added to `.gitignore`
+three states, not left unaddressed: committed, added to `.gitignore`
 (deliberately never tracked), or — for a file that must stay tracked for
 development but must never ship in a release archive — marked
 `export-ignore` in `.gitattributes` (see RELEASE.md's `make dist` step; a
