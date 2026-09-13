@@ -212,6 +212,24 @@ check whether the executable bit survived. For a tracked file, `git diff
 100644` line means it needs `chmod +x` restored before doing anything
 else with it.
 
+## Untracked files must be resolved, not left alone
+
+Every file `git status` reports as untracked must end up in exactly one of
+three states, not left unaddressed: committed, added to `.gitignore`
+(deliberately never tracked), or — for a file that must stay tracked for
+development but must never ship in a release archive — marked
+`export-ignore` in `.gitattributes` (see RELEASE.md's `make dist` step; a
+pseudo-version file that's *never* tracked at all, e.g. a `stable`
+pseudo-version, is the `.gitignore` case instead — see "Version-specific
+SQL files" below).
+
+An untracked file left alone is invisible to a fresh clone or CI, so
+anything depending on it passes locally and fails everywhere else, and
+it's one `git add -A`/`git add .` away from being committed by accident
+later. `make tag` already refuses to run against a dirty tree ("Untracked
+changes!") for exactly this reason — don't wait for that gate to notice;
+resolve an untracked file as soon as you see it in `git status`.
+
 ## Scripts
 
 - Use `#!/usr/bin/env <interpreter>` (e.g. `#!/usr/bin/env bash`,
