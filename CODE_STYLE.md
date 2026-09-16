@@ -35,6 +35,24 @@ across Postgres-Extensions repos.
   the same comment verbatim in adjacent code — write it once and reference
   it ("same as above").
 
+## No unexplained abbreviations
+
+Spell out identifiers in code, comments, and docs (`event_trigger`, not
+`evt`; `configuration`, not `cfg`) unless the shorter form is already
+established Postgres/domain vocabulary (`oid`, `ddl`) or is forced by
+Postgres's own identifier-length limit. An invented local abbreviation
+makes every future reader stop to work out that it *is* one before they
+can even start guessing what it stands for.
+
+The one legitimate exception is deliberately mirroring an existing
+catalog's own column names — e.g. reusing `pg_event_trigger`'s
+`evtname`/`evtenabled` in a table that tracks rows from that same catalog.
+Even then, make the mirroring itself visible in the code (`CREATE TABLE
+... AS SELECT evtname, evtenabled FROM pg_catalog.pg_event_trigger WHERE
+false`, or `LIKE pg_catalog.pg_event_trigger`) rather than a hand-typed
+column list that happens to reuse the same abbreviated names with nothing
+tying them back to their source.
+
 ## Prefer `%TYPE` over a hardcoded type
 
 When a function parameter, variable, or column exists to hold a copy of
