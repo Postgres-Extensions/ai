@@ -42,6 +42,10 @@ duplicated as comments in every caller:
   caller that omitted this block and relied on the callee to grant
   `pull-requests: write` would silently end up with a read-only token,
   breaking the review's ability to post comments.
+- **`pull-requests: write`** is what lets the review post its comments.
+- **`checks: read`** lets the called workflow's cost gate read the PR
+  head's sibling check-runs, so it can wait for them before spending on a
+  review.
 - **`actions: write`** specifically, not `read`: it's the only scope that
   permits an Actions cache write, and no narrower one exists.
 
