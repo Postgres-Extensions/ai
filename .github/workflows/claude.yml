@@ -24,14 +24,13 @@ on:
         required: true
         type: string
 
+# No concurrency limit: @claude mentions are independent, read-only
+# requests; serializing would only delay responses and cancelling would
+# drop them.
 jobs:
   claude:
     # SECURITY: restricts @claude to trusted_actors, not just matching
     # comment text -- otherwise anyone could trigger this job.
-    #
-    # No concurrency limit: @claude mentions are independent, read-only
-    # requests; serializing would only delay responses and cancelling would
-    # drop them.
     if: |
       contains(format(',{0},', inputs.trusted_actors), format(',{0},', github.actor)) &&
       (
