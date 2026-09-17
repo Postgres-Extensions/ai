@@ -126,7 +126,7 @@ jobs:
                       --paginate --slurp 2>/dev/null) || pages=''
             [ -z "$pages" ] && { sleep 20; continue; }
             siblings=$(jq --arg rid "$RUN_ID" \
-                     '[.[].check_runs[] | select(.details_url | contains("/actions/runs/" + $rid + "/") | not)]' <<<"$pages")
+                     '[.[].check_runs[] | select(.details_url // "" | contains("/actions/runs/" + $rid + "/") | not)]' <<<"$pages")
             total=$(jq 'length' <<<"$siblings")
             if [ "$total" -eq 0 ]; then
               [ "$i" -ge 9 ] && { decision=run; break; }   # ~3 min grace
