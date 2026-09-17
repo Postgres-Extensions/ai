@@ -97,6 +97,9 @@ should say so rather than silently falling back to an easily-forgotten
 - [RELEASE.md](./RELEASE.md) — shared release process for repos that
   distribute a PGXN extension via pgxntool (versioning, tagging, PGXN
   upload)
+- [CI-WORKFLOWS.md](./CI-WORKFLOWS.md) — shared reusable GitHub Actions
+  workflows (the Claude Code review job, caller template, versioning/rollback
+  protocol)
 
 ## GitHub comments: identify as an agent
 
