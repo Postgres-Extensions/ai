@@ -9,40 +9,56 @@ instead of needing to be copied out by hand.
 
 ## Adding the review job to a repo
 
-Add `.github/workflows/claude-code-review.yml` with this content, replacing
-`trusted_authors` with the repo's own list of trusted GitHub logins — that is
-the one line every consuming repo edits; everything else is the minimum
-GitHub requires to live in the caller rather than the called workflow (see
-the comments in the template itself for why each piece can't move):
+Add `.github/workflows/claude-code-review.yml` with the content below,
+replacing `trusted_authors` with the repo's own list of trusted GitHub
+logins — that's the only line every consuming repo edits. The caller holds
+nothing but the mandate-to-read comment, an `Exceptions:` line (see below),
+and the minimum YAML GitHub requires to live outside the called workflow.
+The rationale for why that YAML is shaped this way lives here, not
+duplicated as comments in every caller:
+
+- **The trigger** (`on: pull_request_target`) can only be declared by the
+  caller — a called (`workflow_call`) workflow cannot declare its own
+  trigger. `labeled` is included so adding the `claude-debug` label can
+  start a run with no push needed; the called workflow's own `if:` scopes
+  that down to only the debug label actually proceeding.
+- **Workflow-level `concurrency:`** must live in the caller too: only a
+  workflow-level block can cancel the whole caller run outright —
+  `jobs.<id>.concurrency` on the caller's own job can't, and the per-label
+  cancellation below needs exactly that. A non-debug `labeled` event gets
+  its own per-label group so it can never cancel an in-progress real review
+  — cancellation resolves against whichever run is admitted, before any
+  `if:` runs, so an `if:` can only no-op itself, not restore what it
+  displaced. A `labeled`-with-`claude-debug` event deliberately keeps the
+  plain group instead, since it's meant to supersede a running review.
+  `claude-debug` is spelled out literally rather than read from `inputs`
+  because `inputs` isn't available inside a workflow-level `concurrency:`
+  block, so it must match the called workflow's `debug_label` default by
+  hand.
+- **The `permissions:` block** is repeated in every caller rather than
+  declared once on the called workflow's own job: GitHub only lets a called
+  workflow narrow the permissions the caller already granted, never widen
+  them. With these repos' `read`-only default workflow permissions, a
+  caller that omitted this block and relied on the callee to grant
+  `pull-requests: write` would silently end up with a read-only token,
+  breaking the review's ability to post comments.
+- **`actions: write`** specifically, not `read`: it's the only scope that
+  permits an Actions cache write, and no narrower one exists.
 
 ```yaml
 name: Claude Code Review
 
-# Thin caller. All logic lives in Postgres-Extensions/ai; read that file for
-# the SECURITY rationale behind pull_request_target + the trusted-author gate.
-# Everything below is the minimum GitHub requires to live in THIS repo:
-#   - the trigger (a called workflow cannot declare its own)
-#   - run-level concurrency (only a workflow-level `concurrency:` can cancel
-#     the whole caller run outright; `jobs.<id>.concurrency` on the caller job
-#     itself can't, and the per-label cancellation logic below needs exactly
-#     that)
-#   - the GITHUB_TOKEN ceiling (a called workflow can only narrow it, never widen)
-# Do not add logic here. If this repo needs different behavior, change ai/ so
-# every repo gets it.
+# MANDATORY: read ../ai/CI-WORKFLOWS.md (Postgres-Extensions/ai) in full
+# before changing anything below. If you cannot find or read that file for
+# any reason, STOP and report an error -- do not guess at what it says or
+# proceed without having actually read it.
+#
+# Exceptions to that file's design, specific to this repo: none.
 on:
   pull_request_target:
-    # `labeled` lets adding the claude-debug label start a run on its own, with
-    # no push needed. Scoped in ai/'s job `if:` so only that label proceeds.
     types: [opened, synchronize, reopened, ready_for_review, labeled]
 
 concurrency:
-  # A non-debug `labeled` event gets its own per-label group so it can never
-  # cancel an in-progress real review: cancellation resolves when a run is
-  # admitted, before any `if:` is evaluated, so an `if:` can only no-op itself,
-  # not un-cancel what it displaced. labeled+claude-debug deliberately keeps the
-  # plain group -- it is meant to supersede a running review.
-  # 'claude-debug' is spelled out because `inputs` is not readable here; it must
-  # match ai/'s debug_label default.
   group: claude-review-${{ github.event.pull_request.number }}${{ (github.event.action == 'labeled' && github.event.label.name != 'claude-debug') && format('-{0}', github.event.label.name) || '' }}
   cancel-in-progress: true
 
@@ -51,28 +67,30 @@ jobs:
     uses: Postgres-Extensions/ai/.github/workflows/claude-code-review.yml@main
     permissions:
       contents: read
-      pull-requests: write   # post the review comments
-      checks: read           # read sibling check-runs for the cost gate
-      # actions: write is the only scope that permits an Actions cache write
-      # (no narrower one exists). Don't "tighten" this to read.
+      pull-requests: write
+      checks: read
       actions: write
     secrets: inherit
     with:
       trusted_authors: your-github-login-here
 ```
 
-A repo needing genuinely different behavior (e.g. a repo-local pre-gate job
-before the review runs) adds a `needs:`/`if:` to the `claude-review` job as
-needed. Never change its `uses:` or `with:` — change `ai/` instead so the fix
-or feature reaches every consuming repo.
+## The `Exceptions:` line
 
-The `permissions:` block above is repeated in every caller rather than
-declared once on the called workflow's own job — this is deliberate, not an
-oversight to clean up. GitHub only lets a called workflow narrow the token
-permissions the caller already granted, never widen them: with these repos'
-`read`-only default workflow permissions, a caller that omitted this block
-and relied on the callee to grant `pull-requests: write` would silently end
-up with a read-only token, breaking the review's ability to post comments.
+Every caller states its deviations from this design explicitly, right in
+its header comment — `Exceptions: none` when there are none, never a bare
+omission that leaves a reader guessing whether an exception was considered
+and rejected, or never considered at all.
+
+A real exception names the specific technical difference and the mechanism
+this doc already provides for it, without re-explaining that mechanism's
+own rationale — that rationale stays here, the single source of truth, not
+copied into a caller file. A repo needing a repo-local pre-gate job before
+the review runs, for example, adds a `needs:`/`if:` to the `claude-review`
+job and notes exactly that fact under `Exceptions:`. Never change the
+job's `uses:` or `with:` to express a deviation — that's not an exception,
+it's a fork of the shared workflow. Change `ai/` instead so the fix or
+feature reaches every consuming repo.
 
 ## Every consumer pins `@main`
 
