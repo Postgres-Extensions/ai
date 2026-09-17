@@ -48,7 +48,7 @@ concurrency:
 
 jobs:
   claude-review:
-    uses: Postgres-Extensions/ai/.github/workflows/claude-code-review.yml@v1
+    uses: Postgres-Extensions/ai/.github/workflows/claude-code-review.yml@main
     permissions:
       contents: read
       pull-requests: write   # post the review comments
@@ -74,25 +74,16 @@ permissions the caller already granted, never widen them: with these repos'
 and relied on the callee to grant `pull-requests: write` would silently end
 up with a read-only token, breaking the review's ability to post comments.
 
-## Versioning and rollback
+## Every consumer pins `@main`
 
-`v1` is a moving lightweight tag on this repo. Every advance also creates an
-immutable `v1.N` snapshot tag, so a rollback has a concrete target to point
-at:
+Every caller — no exceptions, no separate canary — pins
+`Postgres-Extensions/ai/.github/workflows/claude-code-review.yml@main`. A
+change to `claude-code-review.yml` takes effect for every consuming repo the
+moment it's merged to `main`; there is no intermediate tag to advance.
 
-- **Create** (one-time): `git tag v1.0 <sha> && git tag v1 <sha> && git push origin v1.0 v1`
-- **Advance**: `git tag v1.N <sha> && git tag -f v1 <sha> && git push origin v1.N && git push --force origin v1`
-- **Roll back**: `git tag -f v1 <previous v1.N> && git push --force origin v1`
-
-Advancing `v1` is a deliberate, separate act from merging to `main` — never
-bundle the two. Merging a fix to `main` does not by itself affect any
-`@v1`-pinned consumer; only moving the `v1` tag does. A rollback is instant
-and needs no pull request in any consuming repo: every `@v1` caller picks up
-the new target on its next run.
-
-`pgxntool-test` stays pinned to `@main` permanently, as a live canary — a
-change to `claude-code-review.yml` runs there for real before `v1` is ever
-moved to include it.
+This means a bad change to `main` affects every consuming repo immediately,
+with no staged rollout and no tag to roll back — a revert commit to
+`ai/main` is the only way back.
 
 ## Adding a new `workflow_call` input
 
