@@ -98,8 +98,7 @@ should say so rather than silently falling back to an easily-forgotten
   distribute a PGXN extension via pgxntool (versioning, tagging, PGXN
   upload)
 - [CI-WORKFLOWS.md](./CI-WORKFLOWS.md) — shared reusable GitHub Actions
-  workflows (the Claude Code review job, caller template, versioning/rollback
-  protocol)
+  workflows (the Claude Code review job, caller template)
 
 ## GitHub comments: identify as an agent
 
