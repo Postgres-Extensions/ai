@@ -1,11 +1,12 @@
 # Shared CI workflows
 
-`.github/workflows/claude-code-review.yml` in this repo is the single source
-of truth for the Claude Code review job used across Postgres-Extensions. A
-consuming repo holds only a thin caller file that invokes it via
-`workflow_call`; all trigger logic, the cost gate, and the `claude-code-action`
-configuration live here, in one place, so a fix lands for every repo at once
-instead of needing to be copied out by hand.
+This repo is the single source of truth for two reusable Claude Code jobs
+used across Postgres-Extensions: `.github/workflows/claude-code-review.yml`
+(automated PR review) and `.github/workflows/claude.yml` (the interactive
+`@claude`-mention job). A consuming repo holds only a thin caller file for
+each that invokes it via `workflow_call`; all trigger logic, gating, and the
+`claude-code-action` configuration live here, in one place, so a fix lands
+for every repo at once instead of needing to be copied out by hand.
 
 ## Adding the review job to a repo
 
@@ -79,6 +80,66 @@ jobs:
       trusted_authors: your-github-login-here
 ```
 
+## Adding the @claude job to a repo
+
+Add `.github/workflows/claude.yml` with the content below, replacing
+`trusted_actors` with the repo's own list of trusted GitHub logins — the
+only line every consuming repo edits. As with the review job's caller, the
+rationale for the YAML's shape lives here, not duplicated as comments in
+every caller:
+
+- **The trigger** (`issue_comment`, `pull_request_review_comment`,
+  `issues`, `pull_request_review`) can only be declared by the caller — a
+  called (`workflow_call`) workflow cannot declare its own trigger. Unlike
+  `claude-code-review.yml`'s `pull_request_target`, none of these events
+  read anything from a PR head branch, so there's no fork-trust subtlety
+  and no `concurrency:` block is needed here.
+- **The `permissions:` block** is repeated in every caller for the same
+  reason as the review job's: a called workflow can only narrow what the
+  caller already granted, never widen it.
+- **`pull-requests: read`** and **`issues: read`** let Claude read PR and
+  issue context when responding to a mention.
+- **`id-token: write`** is required for `claude-code-action`'s OIDC token
+  exchange.
+- **`actions: write`** specifically, not `read`: it's the only scope that
+  lets the action's own setup step write to the Actions cache. `read`
+  still works but produces a harmless, noisy "Cache reservation failed:
+  cache write denied" warning on every run — the bug this centralization
+  fixes, since most Postgres-Extensions repos currently grant only `read`.
+
+```yaml
+name: Claude Code
+
+# MANDATORY: read ../ai/CI-WORKFLOWS.md (Postgres-Extensions/ai) in full
+# before changing anything below. If you cannot find or read that file for
+# any reason, STOP and report an error -- do not guess at what it says or
+# proceed without having actually read it.
+#
+# Exceptions to that file's design, specific to this repo: none.
+on:
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  issues:
+    types: [opened, assigned]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  claude:
+    uses: Postgres-Extensions/ai/.github/workflows/claude.yml@main
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+      id-token: write
+      actions: write
+    secrets: inherit
+    with:
+      trusted_actors: your-github-login-here
+```
+
 ## The `Exceptions:` line
 
 Every caller states its deviations from this design explicitly, right in
@@ -98,10 +159,10 @@ feature reaches every consuming repo.
 
 ## Every consumer pins `@main`
 
-Every caller — no exceptions, no separate canary — pins
-`Postgres-Extensions/ai/.github/workflows/claude-code-review.yml@main`. A
-change to `claude-code-review.yml` takes effect for every consuming repo the
-moment it's merged to `main`; there is no intermediate tag to advance.
+Every caller — no exceptions, no separate canary — pins its `uses:` at
+`@main`, whether that's `claude-code-review.yml` or `claude.yml`. A change
+to either takes effect for every consuming repo the moment it's merged to
+`main`; there is no intermediate tag to advance.
 
 This means a bad change to `main` affects every consuming repo immediately,
 with no staged rollout and no tag to roll back — a revert commit to

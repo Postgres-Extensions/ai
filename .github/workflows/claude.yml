@@ -1,0 +1,64 @@
+name: Claude Code (shared)
+
+# Single source of truth for the @claude interactive job across
+# Postgres-Extensions. Consumers hold a thin caller file; see
+# ai/CI-WORKFLOWS.md for the template.
+#
+# Unlike claude-code-review.yml, none of this workflow's triggers
+# (issue_comment, pull_request_review_comment, issues, pull_request_review)
+# ever read anything from a PR head branch -- every one of them reads the
+# workflow file from the current default branch, so there is no
+# pull_request_target trust subtlety here to guard against.
+#
+# Input names use underscores, not hyphens: `inputs.some-name` is ambiguous
+# with subtraction in the expression parser.
+
+on:
+  workflow_call:
+    inputs:
+      trusted_actors:
+        description: >-
+          Comma-separated GitHub logins (no spaces) allowed to trigger this
+          job via @claude mentions. Required on purpose; there is no safe
+          default.
+        required: true
+        type: string
+
+jobs:
+  claude:
+    # SECURITY: restricts @claude to trusted_actors, not just matching
+    # comment text -- otherwise anyone could trigger this job.
+    #
+    # No concurrency limit: @claude mentions are independent, read-only
+    # requests; serializing would only delay responses and cancelling would
+    # drop them.
+    if: |
+      contains(format(',{0},', inputs.trusted_actors), format(',{0},', github.actor)) &&
+      (
+        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
+        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
+        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # No `permissions:` block on purpose. A called workflow can only narrow
+    # what the caller granted, never widen it, so the ceiling lives in each
+    # caller; declaring a block here would break any caller granting less.
+    steps:
+      - name: Checkout repository
+        # Tracks the major-version tag, not a pinned SHA, so upstream fixes
+        # are picked up automatically.
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Run Claude Code
+        id: claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Allows Claude to read CI results on PRs
+          additional_permissions: |
+            actions: read
