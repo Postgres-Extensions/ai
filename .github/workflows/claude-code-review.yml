@@ -88,12 +88,23 @@ jobs:
       #                   siblings exist after a ~3 min grace window.
       #   decision=skip : a sibling failed/cancelled, or we timed out waiting.
       #
-      # Self-exclusion is by check-SUITE id, which is per workflow run and
-      # therefore exact. Do NOT switch this back to matching on check-run name:
-      # as a reusable workflow this job's check-run is named
-      # "<caller job> / review", so a name filter would fail to exclude it, the
-      # gate would wait on itself to the timeout, and the review would be
-      # skipped on every single PR.
+      # Self-exclusion matches each check-run's own details_url against this
+      # run's id (github.run_id) -- every check-run already carries a
+      # details_url of the form ".../actions/runs/<run_id>/job/<job_id>", so
+      # this needs no extra API call and no permission beyond the checks:read
+      # the caller already grants for the sibling lookup below.
+      #
+      # Do NOT resolve the run's own check-SUITE id via a separate `gh api`
+      # call instead: that call has no retry/fallback like the paginated
+      # lookup below, so under `set -e` a transient GitHub error there aborts
+      # the whole job red instead of just skipping the review -- worse than
+      # having no gate at all.
+      #
+      # Do NOT switch this to matching on check-run name either: as a
+      # reusable workflow this job's check-run is named "<caller job> /
+      # review", so a name filter would fail to exclude it, the gate would
+      # wait on itself to the timeout, and the review would be skipped on
+      # every single PR.
       - name: Wait for CI; skip the paid review if any check failed
         id: gate
         if: steps.debug.outputs.enabled != 'true'
@@ -104,9 +115,6 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          # Readable via the actions:write the caller grants (write implies read).
-          suite=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq '.check_suite_id')
-          [ -n "$suite" ] || { echo "could not resolve own check-suite id" >&2; exit 1; }
 
           decision=skip
           for i in $(seq 1 72); do   # ~24 min max
@@ -117,16 +125,16 @@ jobs:
             pages=$(gh api "repos/$REPO/commits/$SHA/check-runs?per_page=100" \
                       --paginate --slurp 2>/dev/null) || pages=''
             [ -z "$pages" ] && { sleep 20; continue; }
-            sib=$(jq --argjson s "$suite" \
-                     '[.[].check_runs[] | select(.check_suite.id != $s)]' <<<"$pages")
-            total=$(jq 'length' <<<"$sib")
+            siblings=$(jq --arg rid "$RUN_ID" \
+                     '[.[].check_runs[] | select(.details_url | contains("/actions/runs/" + $rid + "/") | not)]' <<<"$pages")
+            total=$(jq 'length' <<<"$siblings")
             if [ "$total" -eq 0 ]; then
               [ "$i" -ge 9 ] && { decision=run; break; }   # ~3 min grace
               sleep 20; continue
             fi
-            pending=$(jq '[.[]|select(.status!="completed")]|length' <<<"$sib")
+            pending=$(jq '[.[]|select(.status!="completed")]|length' <<<"$siblings")
             if [ "$pending" -eq 0 ]; then
-              bad=$(jq '[.[]|select((.conclusion//"")|test("^(failure|cancelled|timed_out|action_required|stale)$"))]|length' <<<"$sib")
+              bad=$(jq '[.[]|select((.conclusion//"")|test("^(failure|cancelled|timed_out|action_required|stale)$"))]|length' <<<"$siblings")
               [ "$bad" -eq 0 ] && decision=run || decision=skip
               break
             fi

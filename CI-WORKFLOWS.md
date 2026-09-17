@@ -22,8 +22,10 @@ name: Claude Code Review
 # the SECURITY rationale behind pull_request_target + the trusted-author gate.
 # Everything below is the minimum GitHub requires to live in THIS repo:
 #   - the trigger (a called workflow cannot declare its own)
-#   - run-level concurrency (must be here; setting concurrency on a job that
-#     `uses:` a reusable workflow deadlocks against the called workflow's group)
+#   - run-level concurrency (only a workflow-level `concurrency:` can cancel
+#     the whole caller run outright; `jobs.<id>.concurrency` on the caller job
+#     itself can't, and the per-label cancellation logic below needs exactly
+#     that)
 #   - the GITHUB_TOKEN ceiling (a called workflow can only narrow it, never widen)
 # Do not add logic here. If this repo needs different behavior, change ai/ so
 # every repo gets it.
@@ -52,8 +54,7 @@ jobs:
       pull-requests: write   # post the review comments
       checks: read           # read sibling check-runs for the cost gate
       # actions: write is the only scope that permits an Actions cache write
-      # (no narrower one exists), and its implied read is what lets the cost
-      # gate look up its own check-suite id. Don't "tighten" this to read.
+      # (no narrower one exists). Don't "tighten" this to read.
       actions: write
     secrets: inherit
     with:
@@ -61,10 +62,17 @@ jobs:
 ```
 
 A repo needing genuinely different behavior (e.g. a repo-local pre-gate job
-before the review runs) still uses this exact `claude-review` job as-is — it
-only prepends its own job(s) that `claude-review`'s own `needs:`/`if:` then
-depends on. Never edit the `uses:`/`with:` call itself; change `ai/` instead
-so the fix or feature reaches every consuming repo.
+before the review runs) adds a `needs:`/`if:` to the `claude-review` job as
+needed. Never change its `uses:` or `with:` — change `ai/` instead so the fix
+or feature reaches every consuming repo.
+
+The `permissions:` block above is repeated in every caller rather than
+declared once on the called workflow's own job — this is deliberate, not an
+oversight to clean up. GitHub only lets a called workflow narrow the token
+permissions the caller already granted, never widen them: with these repos'
+`read`-only default workflow permissions, a caller that omitted this block
+and relied on the callee to grant `pull-requests: write` would silently end
+up with a read-only token, breaking the review's ability to post comments.
 
 ## Versioning and rollback
 
