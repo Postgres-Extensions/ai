@@ -301,10 +301,16 @@ one):
       extension was reverted to its own last real version for the archive
       in step 4, and needs to come back to `stable` here just like a moved
       one, or the *next* source edit corrupts it exactly the same way):
-      flip `default_version` back to `stable` in `<ext>.control`, and
+      flip `default_version` back to `stable` in `<ext>.control` (`make
+      post-tag-version-bump`, pgxntool 2.4.0+, does this for every control
+      file at once; it requires a clean tree and does nothing else), and
       re-seed a `sql/<ext>--<its-current-real-version>--stable.sql[.in]`
-      update script (content-identical to the source at this point — it
-      exists purely so the update path to `stable` is always available)
+      update script as a no-op placeholder — a comment, no statements,
+      even in a single-extension repo (`stable` is identical to the version
+      just shipped, so there is nothing to apply; copying the install
+      script in would make `ALTER EXTENSION ... UPDATE` re-run its
+      `CREATE`s) — which exists purely so the update path to `stable` is
+      always available
       for the next cycle. `<its-current-real-version>` is the version each
       extension actually ships at coming out of this release — the new
       one for an extension that moved, the same old one for an extension
