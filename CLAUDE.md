@@ -253,6 +253,15 @@ suite — must be reported to the user immediately, never rationalized as
 verifying that directly. If failures exist, work with the user to fix
 them or plan commit/merge order to avoid them.
 
+## Remove a workaround in the same change that removes its reason
+
+When a change removes the reason for a workaround, disabled test, or
+skipped check (a CI system, a version floor, a tool limitation),
+re-enable or delete that item in the same change. Never reword its
+comment to keep it disabled.
+
+Grep for the removed thing's name (e.g. "travis") across comments.
+
 ## Writing documentation
 
 When documenting current behavior, avoid narrating the past ("previously
