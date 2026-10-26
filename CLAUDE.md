@@ -86,6 +86,28 @@ equivalent scheduler has no way to actually enforce the cadence, and
 should say so rather than silently falling back to an easily-forgotten
 "remember to check" habit.
 
+## Wiring a repo up to ../ai
+
+Start the consuming repo's `CLAUDE.md` with this, then add only
+repo-specific content — don't restate what `../ai/` already says:
+
+```markdown
+@../ai/CLAUDE.md
+
+If `../ai/CLAUDE.md` doesn't exist locally (see
+https://github.com/Postgres-Extensions/ai), clone it now per its own
+first instruction, then re-read it — do not rely on the import above
+alone to have picked it up in that case.
+```
+
+Use an `@` import rather than a plain link: it loads the file into
+context automatically, whereas a link is only followed if the agent
+decides to open it. The import fails silently when the file is missing,
+which is why the fallback paragraph is required.
+
+Optionally also point at `../ai/PR.md` and `../ai/CODE_STYLE.md` where
+the repo's own docs discuss PRs or comment style.
+
 ## Related docs in this repo
 
 - [PR.md](./PR.md) — PR, commit, and git-process conventions (merge
