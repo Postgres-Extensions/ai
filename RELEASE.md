@@ -303,14 +303,14 @@ one):
       one, or the *next* source edit corrupts it exactly the same way):
       flip `default_version` back to `stable` in `<ext>.control` (`make
       post-tag-version-bump`, pgxntool 2.4.0+, does this for every control
-      file at once; it requires a clean tree and does nothing else), and
-      re-seed a `sql/<ext>--<its-current-real-version>--stable.sql[.in]`
-      update script as a no-op placeholder — a comment, no statements,
-      even in a single-extension repo (`stable` is identical to the version
-      just shipped, so there is nothing to apply; copying the install
-      script in would make `ALTER EXTENSION ... UPDATE` re-run its
-      `CREATE`s) — which exists purely so the update path to `stable` is
-      always available
+      file at once, but aborts on an unclean tree: run it before creating
+      the update script below), and re-seed
+      `sql/<ext>--<its-current-real-version>--stable.sql[.in]` as a no-op
+      placeholder: a comment, no statements, in single-extension repos too.
+      `stable` is identical to the version just shipped, so there is
+      nothing to apply, and copying the install script in would make
+      `ALTER EXTENSION ... UPDATE` re-run its `CREATE`s. The file exists
+      purely so the update path to `stable` is always available
       for the next cycle. `<its-current-real-version>` is the version each
       extension actually ships at coming out of this release — the new
       one for an extension that moved, the same old one for an extension
