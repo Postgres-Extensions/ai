@@ -260,8 +260,7 @@ skipped check (a CI system, a version floor, a tool limitation),
 re-enable or delete that item in the same change. Never reword its
 comment to keep it disabled.
 
-Grep the whole tree, comments included, for the name of the removed thing
-(e.g. the CI system's name) to find items still justified by it.
+Grep for the removed thing's name (e.g. "travis") across comments.
 
 ## Writing documentation
 
