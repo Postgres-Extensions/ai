@@ -343,12 +343,12 @@ repo that adopts it — not yet done anywhere in the org.
 - A CI dependency-override toggle (build a dependency from a git ref
   instead of its published PGXN version) must be unset before cutting a
   release — see step 2 above.
-- **Never create a tag with the same name as an existing version branch.**
+- Never create a tag with the same name as an existing version branch.
   This applies to repos whose pre-tag releases exist as branches named
   exactly the version. `make tag` (pgxntool 1.0.0+) reads the branch as an
   existing tag and fails with
   `Tag <version> exists but points to different commit`. A tag made by hand
   makes `git push origin <version>` fail with
-  `src refspec <version> matches more than one`, because Git treats the name
-  as ambiguous. It only bites when re-releasing one of those old version
-  numbers; new versions have no branch.
+  `src refspec <version> matches more than one`, because Git treats the
+  name as ambiguous. It only bites when re-releasing one of those old
+  version numbers; new versions have no branch.
