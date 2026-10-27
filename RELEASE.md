@@ -296,19 +296,21 @@ one):
 
 ## 8. Return master to `stable` (CRITICAL — do not skip if any extension version moved)
 
-- [ ] As soon as the release is merged, for **every** extension this
-      distribution provides (moved this release or not — an unmoved
-      extension was reverted to its own last real version for the archive
-      in step 4, and needs to come back to `stable` here just like a moved
-      one, or the *next* source edit corrupts it exactly the same way):
-      flip `default_version` back to `stable` in `<ext>.control` (`make
-      post-tag-version-bump`, pgxntool 2.4.0+, does this for every control
-      file at once, but aborts on an unclean tree: run it before creating
-      the update script below), and re-seed
-      `sql/<ext>--<its-current-real-version>--stable.sql[.in]` as a no-op
-      placeholder: a comment, no statements, in single-extension repos too.
-      `stable` is identical to the version just shipped, so there is
-      nothing to apply, and copying the install script in would make
+- [ ] As soon as the release is merged, run this first in this step,
+      before any other edit (every later edit dirties the tree): for
+      **every** extension this distribution provides (moved this release
+      or not — an unmoved extension was reverted to its own last real
+      version for the archive in step 4, and needs to come back to
+      `stable` here just like a moved one, or the *next* source edit
+      corrupts it exactly the same way), flip `default_version` back to
+      `stable` in `<ext>.control`. `make post-tag-version-bump`
+      (pgxntool 2.4.0+) does this for every control file at once, but
+      aborts on an unclean tree.
+- [ ] Re-seed `sql/<ext>--<its-current-real-version>--stable.sql[.in]` as
+      a no-op placeholder: a comment, no statements, in single-extension
+      repos too. `stable` is identical to the version just shipped (as
+      long as nothing else has landed since the tag), so there is nothing
+      to apply, and copying the install script in would make
       `ALTER EXTENSION ... UPDATE` re-run its `CREATE`s. The file exists
       purely so the update path to `stable` is always available
       for the next cycle. `<its-current-real-version>` is the version each
