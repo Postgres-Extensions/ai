@@ -45,8 +45,8 @@ from scratch under time pressure:
     with your entry.
 - If a PR changes an extension's SQL, also maintain the update script from
   the last released version to `stable`:
-  `sql/<ext>--<last-released-version>--stable.sql[.in]`. Step 8 leaves this
-  file in place after every release as a no-op placeholder (a comment, no
+  `sql/<ext>--<last-released-version>--stable.sql[.in]`. Step 8 seeds this
+  file after every release as a no-op placeholder (a comment, no
   statements); the first SQL-touching PR since the release replaces that
   placeholder comment with real statements. Create the file only if it is
   missing. Every subsequent SQL-touching PR adds whatever `ALTER ...` or
@@ -56,8 +56,8 @@ from scratch under time pressure:
     tidiness: Postgres's version-graph resolution needs an actual
     `sql/<ext>--<from>--<to>.sql` file to exist for
     `ALTER EXTENSION ... UPDATE` to have *any* path between two versions,
-    regardless of whether the content would be a no-op — confirmed directly
-    (`has no update path from version X to version Y` without one).
+    regardless of whether the content would be a no-op (without one,
+    Postgres reports `has no update path from version X to version Y`).
   - **Distributions that provide more than one extension** (see
     "Multi-extension distributions" under step 3): every extension gets
     one of these files, present at all times between releases — not just
@@ -298,24 +298,24 @@ one):
 
 ## 8. Return master to `stable` (CRITICAL — do not skip if any extension version moved)
 
-- [ ] As soon as the release is merged, run this first in this step,
-      before any other edit (every later edit dirties the tree): for
-      **every** extension this distribution provides (moved this release
-      or not — an unmoved extension was reverted to its own last real
-      version for the archive in step 4, and needs to come back to
-      `stable` here just like a moved one, or the *next* source edit
-      corrupts it exactly the same way), flip `default_version` back to
-      `stable` in `<ext>.control`. `make post-tag-version-bump`
-      (pgxntool 2.4.0+) does this for every control file at once, but
-      aborts on an unclean tree.
+- [ ] As soon as the release is merged, flip `default_version` back to
+      `stable` in `<ext>.control` for **every** extension this
+      distribution provides (moved this release or not — an unmoved
+      extension was reverted to its own last real version for the archive
+      in step 4, and needs to come back to `stable` here just like a moved
+      one, or the *next* source edit corrupts it exactly the same way).
+      Do this before any other edit in this step:
+      `make post-tag-version-bump` (pgxntool 2.4.0+) does it for every
+      control file at once but aborts on an unclean tree, and every later
+      edit dirties the tree.
 - [ ] Re-seed `sql/<ext>--<its-current-real-version>--stable.sql[.in]` as
-      a no-op placeholder: a comment, no statements, in single-extension
-      repos too. `stable` is identical to the version just shipped (as
-      long as nothing else has landed since the tag), so there is nothing
-      to apply, and copying the install script in would make
-      `ALTER EXTENSION ... UPDATE` re-run its `CREATE`s. The file exists
-      purely so the update path to `stable` is always available
-      for the next cycle. `<its-current-real-version>` is the version each
+      a no-op placeholder (a comment, no statements) for every extension,
+      single-extension repos included. `stable` is identical to the
+      version just shipped (as long as nothing else has landed since the
+      tag), so there is nothing to apply, and copying the install script
+      in would make `ALTER EXTENSION ... UPDATE` re-run its `CREATE`s. The
+      file exists purely so the update path to `stable` is always
+      available for the next cycle. `<its-current-real-version>` is the version each
       extension actually ships at coming out of this release — the new
       one for an extension that moved, the same old one for an extension
       that didn't.
