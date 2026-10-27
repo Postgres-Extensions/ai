@@ -45,11 +45,19 @@ from scratch under time pressure:
     with your entry.
 - If a PR changes an extension's SQL, also maintain the update script from
   the last released version to `stable`:
-  `sql/<ext>--<last-released-version>--stable.sql[.in]`. Create it if it
-  doesn't exist yet (first SQL-touching PR since the last release). Every
-  subsequent SQL-touching PR adds whatever `ALTER ...`/`CREATE OR REPLACE
-  ...` statements are needed to bring an install on the last released
-  version up to your changes.
+  `sql/<ext>--<last-released-version>--stable.sql[.in]`. Step 8 seeds this
+  file after every release as a no-op placeholder (a comment, no
+  statements); the first SQL-touching PR since the release replaces that
+  placeholder comment with real statements. Create the file only if it is
+  missing. Every subsequent SQL-touching PR adds whatever `ALTER ...` or
+  `CREATE OR REPLACE ...` statements are needed to bring an install on the
+  last released version up to your changes.
+  - The file must exist even when nothing has changed, not merely as
+    tidiness: Postgres's version-graph resolution needs an actual
+    `sql/<ext>--<from>--<to>.sql` file to exist for
+    `ALTER EXTENSION ... UPDATE` to have *any* path between two versions,
+    regardless of whether the content would be a no-op (without one,
+    Postgres reports `has no update path from version X to version Y`).
   - **Distributions that provide more than one extension** (see
     "Multi-extension distributions" under step 3): every extension gets
     one of these files, present at all times between releases — not just
@@ -59,12 +67,6 @@ from scratch under time pressure:
     per-extension release decision in step 3 possible: at release time,
     each extension's own file is inspected to decide whether *that*
     extension needs a new version at all.
-  - The placeholder is required even when nothing has changed, not
-    merely tidy: Postgres's version-graph resolution needs an actual
-    `sql/<ext>--<from>--<to>.sql` file to exist for `ALTER EXTENSION ...
-    UPDATE` to have *any* path between two versions, regardless of
-    whether the content would be a no-op — confirmed directly (`has no
-    update path from version X to version Y` without one).
 
 This is the flip side of the `stable` pseudo-version described in
 `CLAUDE.md`'s "Version-specific SQL files" — that section covers why it's
@@ -296,22 +298,24 @@ one):
 
 ## 8. Return master to `stable` (CRITICAL — do not skip if any extension version moved)
 
-- [ ] As soon as the release is merged, for **every** extension this
+- [ ] As soon as the release is merged, flip `default_version` back to
+      `stable` in `<ext>.control` for **every** extension this
       distribution provides (moved this release or not — an unmoved
       extension was reverted to its own last real version for the archive
       in step 4, and needs to come back to `stable` here just like a moved
-      one, or the *next* source edit corrupts it exactly the same way):
-      flip `default_version` back to `stable` in `<ext>.control` (`make
-      post-tag-version-bump`, pgxntool 2.4.0+, does this for every control
-      file at once; it requires a clean tree and does nothing else), and
-      re-seed a `sql/<ext>--<its-current-real-version>--stable.sql[.in]`
-      update script as a no-op placeholder — a comment, no statements,
-      even in a single-extension repo (`stable` is identical to the version
-      just shipped, so there is nothing to apply; copying the install
-      script in would make `ALTER EXTENSION ... UPDATE` re-run its
-      `CREATE`s) — which exists purely so the update path to `stable` is
-      always available
-      for the next cycle. `<its-current-real-version>` is the version each
+      one, or the *next* source edit corrupts it exactly the same way).
+      Do this before any other edit in this step:
+      `make post-tag-version-bump` (pgxntool 2.4.0+) does it for every
+      control file at once but aborts on an unclean tree, and every later
+      edit dirties the tree.
+- [ ] Re-seed `sql/<ext>--<its-current-real-version>--stable.sql[.in]` as
+      a no-op placeholder (a comment, no statements) for every extension,
+      single-extension repos included. `stable` is identical to the
+      version just shipped (as long as nothing else has landed since the
+      tag), so there is nothing to apply, and copying the install script
+      in would make `ALTER EXTENSION ... UPDATE` re-run its `CREATE`s. The
+      file exists purely so the update path to `stable` is always
+      available for the next cycle. `<its-current-real-version>` is the version each
       extension actually ships at coming out of this release — the new
       one for an extension that moved, the same old one for an extension
       that didn't.
