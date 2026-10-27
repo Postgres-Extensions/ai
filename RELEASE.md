@@ -45,11 +45,19 @@ from scratch under time pressure:
     with your entry.
 - If a PR changes an extension's SQL, also maintain the update script from
   the last released version to `stable`:
-  `sql/<ext>--<last-released-version>--stable.sql[.in]`. Create it if it
-  doesn't exist yet (first SQL-touching PR since the last release). Every
-  subsequent SQL-touching PR adds whatever `ALTER ...`/`CREATE OR REPLACE
-  ...` statements are needed to bring an install on the last released
-  version up to your changes.
+  `sql/<ext>--<last-released-version>--stable.sql[.in]`. Step 8 leaves this
+  file in place after every release as a no-op placeholder (a comment, no
+  statements); the first SQL-touching PR since the release replaces that
+  placeholder comment with real statements. Create the file only if it is
+  missing. Every subsequent SQL-touching PR adds whatever `ALTER ...` or
+  `CREATE OR REPLACE ...` statements are needed to bring an install on the
+  last released version up to your changes.
+  - The file must exist even when nothing has changed, not merely as
+    tidiness: Postgres's version-graph resolution needs an actual
+    `sql/<ext>--<from>--<to>.sql` file to exist for
+    `ALTER EXTENSION ... UPDATE` to have *any* path between two versions,
+    regardless of whether the content would be a no-op — confirmed directly
+    (`has no update path from version X to version Y` without one).
   - **Distributions that provide more than one extension** (see
     "Multi-extension distributions" under step 3): every extension gets
     one of these files, present at all times between releases — not just
@@ -59,12 +67,6 @@ from scratch under time pressure:
     per-extension release decision in step 3 possible: at release time,
     each extension's own file is inspected to decide whether *that*
     extension needs a new version at all.
-  - The placeholder is required even when nothing has changed, not
-    merely tidy: Postgres's version-graph resolution needs an actual
-    `sql/<ext>--<from>--<to>.sql` file to exist for `ALTER EXTENSION ...
-    UPDATE` to have *any* path between two versions, regardless of
-    whether the content would be a no-op — confirmed directly (`has no
-    update path from version X to version Y` without one).
 
 This is the flip side of the `stable` pseudo-version described in
 `CLAUDE.md`'s "Version-specific SQL files" — that section covers why it's
