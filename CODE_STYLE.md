@@ -72,20 +72,18 @@ where this was done and then reverted).
 `CREATE EXTENSION`/`ALTER EXTENSION UPDATE` already forces
 `client_min_messages` (and `log_min_messages`) up to at least `WARNING`
 for the duration of the install/update script, restoring the caller's
-original setting the moment the script finishes — confirmed directly
-against `execute_extension_script()` in PostgreSQL's
-`backend/commands/extension.c`, and verified empirically on PG12 and
-PG17. It only *raises* the level, so a caller who set something stricter
-(e.g. `ERROR`) is still respected.
+original setting the moment the script finishes. See
+`execute_extension_script()` in PostgreSQL's
+`src/backend/commands/extension.c`. It only *raises* the level, so a
+caller who set something stricter (e.g. `ERROR`) is still respected.
 
 Because Postgres already does this, an install script (`sql/*.sql`,
 `sql/*.sql.in`) must never `SET`/`SET LOCAL client_min_messages` itself to
 quiet its own NOTICEs (e.g. from a `%TYPE` conversion or an intentional
 no-op `GRANT`) — it's redundant at best, and at worst *worse* than doing
 nothing: an unconditional `SET LOCAL ... = WARNING` unconditionally lowers
-a caller's stricter setting until the end of the caller's
-transaction, rather than only raising to it like Postgres's own mechanism
-does.
+a caller's stricter setting until the end of the enclosing transaction,
+rather than only raising to it like Postgres's own mechanism does.
 
 This has already been fixed and regressed more than once — fixed in
 [cat_tools#26](https://github.com/Postgres-Extensions/cat_tools/pull/26),

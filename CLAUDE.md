@@ -365,23 +365,25 @@ in the rare event a client connects immediately is a reasonable design; a
 mechanism that pays that same cost on every upgrade because it was built
 as if concurrent access were the normal case is not.
 
-## Session state in create/update scripts: `SET LOCAL`, and set it back with `SET LOCAL`
+## Session state in create/update scripts: use `SET LOCAL`
 
 Inside a `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script, change
-settings only with `SET LOCAL`, never a plain `SET`. If the script changes
-a setting Postgres may not have saved for it (`statement_timeout`, etc.),
-read the value first and set it back with `SET LOCAL` before the script
-ends. That is harmless for settings Postgres did save.
+settings only with `SET LOCAL`, never a plain `SET`. For a setting
+Postgres doesn't save (`statement_timeout`, etc.), also read the value
+first and set it back with `SET LOCAL` before the script ends; for a
+setting Postgres does save, that set-back is unnecessary and harmless.
 
 Postgres runs each script in its own GUC nest level. It saves the caller's
 `search_path` (always) and `client_min_messages` (only when the caller is
 below `WARNING`), sets them to `<target schema>, pg_temp` and `warning`,
-and restores the saved values when the script ends.
+and restores the saved values when the script ends. See
+`execute_extension_script()` in PostgreSQL's
+`src/backend/commands/extension.c`. For `client_min_messages` see "Don't
+set `client_min_messages` inside an extension install script" in
+`CODE_STYLE.md`.
 
 - A plain `SET` of a saved setting overrides that restore, so the script's
   value leaks to the caller.
-- `SET LOCAL` of a saved setting leaves the restore in place, so it ends
-  with the script.
 - `SET LOCAL` of a setting Postgres did not save lasts until the end of
   the *enclosing transaction*, so anything later in that transaction
   inherits it.
@@ -389,20 +391,11 @@ and restores the saved values when the script ends.
   setting, not the caller's. Saving it and plain-`SET`ting it back leaves
   the caller with `<schema>, pg_temp` as `search_path`.
 
-Checked against `execute_extension_script()` in `extension.c` and
-`push_old_value()`/`AtEOXact_GUC()` in `guc.c`, and tested on PG12 and
-PG17. (For `client_min_messages` see "Don't set `client_min_messages`
-inside an extension install script" in `CODE_STYLE.md`.)
-
-For an example test, see
-[trunklet's test/helpers/update_with_data.sql](https://github.com/Postgres-Extensions/trunklet/blob/master/test/helpers/update_with_data.sql).
-It records `search_path` and `client_min_messages` (with `set_config`) before
-`ALTER EXTENSION ... UPDATE` and fails if either has changed afterwards. It
-resets `client_min_messages` first, so a value the old version's install
-script left raised can't hide the update script doing the same. It runs in
-autocommit, so it catches a leak that outlives the script's transaction (a
-plain `SET`), but not a `SET LOCAL` of a setting Postgres did not save, which
-lasts only until the transaction ends.
+[trunklet's test/helpers/update_with_data.sql](https://github.com/Postgres-Extensions/trunklet/blob/master/test/helpers/update_with_data.sql)
+is an example test that fails if `ALTER EXTENSION ... UPDATE` leaves any of
+the caller's settings changed. It doesn't catch a `SET LOCAL` of a setting
+the server didn't save, because that change only lasts until the end of the
+enclosing transaction.
 
 ## RAISE: follow Postgres's own error-message style guide
 
