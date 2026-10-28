@@ -67,43 +67,6 @@ protection it exists to provide, not simplifying dead weight (see
 [Postgres-Extensions/test_factory#18](https://github.com/Postgres-Extensions/test_factory/pull/18),
 where this was done and then reverted).
 
-## Avoid setting `client_min_messages` inside an extension install script
-
-`CREATE EXTENSION`/`ALTER EXTENSION UPDATE` already forces
-`client_min_messages` (and `log_min_messages`) up to at least `WARNING`
-for the duration of the install/update script, restoring the caller's
-original setting the moment the script finishes. See
-`execute_extension_script()` in PostgreSQL's
-`src/backend/commands/extension.c`. It only *raises* the level, so a
-caller who set something stricter (e.g. `ERROR`) is still respected.
-
-Because Postgres already does this, an install script (`sql/*.sql`,
-`sql/*.sql.in`) shouldn't `SET`/`SET LOCAL client_min_messages` itself just
-to quiet its own NOTICEs (e.g. from a `%TYPE` conversion or an intentional
-no-op `GRANT`) — it's redundant at best, and at worst *worse* than doing
-nothing: an unconditional `SET LOCAL ... = WARNING` lowers a caller's
-stricter setting until the end of the enclosing transaction, rather than
-only raising to it like Postgres's own mechanism does.
-
-This has already been fixed and regressed more than once — fixed in
-[cat_tools#26](https://github.com/Postgres-Extensions/cat_tools/pull/26),
-[count_nulls#4](https://github.com/Postgres-Extensions/count_nulls/pull/4),
-[extension_tools#3](https://github.com/Postgres-Extensions/extension_tools/pull/3),
-and [object_reference#6](https://github.com/Postgres-Extensions/object_reference/pull/6),
-then reintroduced later in
-[object_reference#17](https://github.com/Postgres-Extensions/object_reference/pull/17)
-and [test_factory#18](https://github.com/Postgres-Extensions/test_factory/pull/18) —
-each time by an agent that didn't know (or forgot) the removal was
-intentional. If a script has a NOTICE it can't otherwise avoid, that's
-expected: it's exactly what Postgres's own suppression already handles
-for a real `CREATE EXTENSION`.
-
-The one place that *does* need its own suppression is a test harness like
-`test/build/*` that `\i`'s the raw script directly instead of going
-through `CREATE EXTENSION` — it never gets Postgres's script-scoped
-suppression, so it must set `client_min_messages` itself, immediately
-before the `\i`, in the harness rather than the script.
-
 ## Closing non-indentable blocks
 
 When closing a code block that cannot be indented to show its nesting
