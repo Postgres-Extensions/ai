@@ -1,10 +1,9 @@
 # Changing settings in extension install/update scripts
 
 Inside a `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script, change
-settings only with `SET LOCAL`, never a plain `SET`. For a setting
-Postgres doesn't save (`statement_timeout`, etc.), also read the value
-first and set it back with `SET LOCAL` before the script ends; for a
-setting Postgres does save, that set-back is unnecessary and harmless.
+settings only with `SET LOCAL`, never a plain `SET`. Also read the
+setting's value first and set it back with `SET LOCAL` before the script
+ends; for a setting Postgres saves, that set-back is harmless.
 
 Postgres runs each script in its own GUC nest level. It saves a few
 settings, some only conditionally (`search_path` always,

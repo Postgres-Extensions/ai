@@ -367,11 +367,11 @@ in the rare event a client connects immediately is a reasonable design; a
 mechanism that pays that same cost on every upgrade because it was built
 as if concurrent access were the normal case is not.
 
-## Session state in create/update scripts: use `SET LOCAL`
+## Changing settings in create/update scripts
 
 If an extension install/update script needs to change a setting (`SET`,
-`set_config()`, etc.), you *MUST* read [EXTENSION_SCRIPTS.md](./EXTENSION_SCRIPTS.md)
-first. Use `SET LOCAL`, never a plain `SET`.
+`set_config()`, etc.), you *MUST* read [`../ai/EXTENSION_SCRIPTS.md`](./EXTENSION_SCRIPTS.md)
+first.
 
 ## RAISE: follow Postgres's own error-message style guide
 

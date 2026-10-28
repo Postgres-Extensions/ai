@@ -78,12 +78,12 @@ original setting the moment the script finishes. See
 caller who set something stricter (e.g. `ERROR`) is still respected.
 
 Because Postgres already does this, an install script (`sql/*.sql`,
-`sql/*.sql.in`) shouldn't `SET`/`SET LOCAL client_min_messages` itself just to
-quiet its own NOTICEs (e.g. from a `%TYPE` conversion or an intentional
+`sql/*.sql.in`) shouldn't `SET`/`SET LOCAL client_min_messages` itself just
+to quiet its own NOTICEs (e.g. from a `%TYPE` conversion or an intentional
 no-op `GRANT`) — it's redundant at best, and at worst *worse* than doing
-nothing: an unconditional `SET LOCAL ... = WARNING` unconditionally lowers
-a caller's stricter setting until the end of the enclosing transaction,
-rather than only raising to it like Postgres's own mechanism does.
+nothing: an unconditional `SET LOCAL ... = WARNING` lowers a caller's
+stricter setting until the end of the enclosing transaction, rather than
+only raising to it like Postgres's own mechanism does.
 
 This has already been fixed and regressed more than once — fixed in
 [cat_tools#26](https://github.com/Postgres-Extensions/cat_tools/pull/26),
