@@ -67,7 +67,7 @@ protection it exists to provide, not simplifying dead weight (see
 [Postgres-Extensions/test_factory#18](https://github.com/Postgres-Extensions/test_factory/pull/18),
 where this was done and then reverted).
 
-## Don't set `client_min_messages` inside an extension install script
+## Avoid setting `client_min_messages` inside an extension install script
 
 `CREATE EXTENSION`/`ALTER EXTENSION UPDATE` already forces
 `client_min_messages` (and `log_min_messages`) up to at least `WARNING`
@@ -78,7 +78,7 @@ original setting the moment the script finishes. See
 caller who set something stricter (e.g. `ERROR`) is still respected.
 
 Because Postgres already does this, an install script (`sql/*.sql`,
-`sql/*.sql.in`) must never `SET`/`SET LOCAL client_min_messages` itself to
+`sql/*.sql.in`) shouldn't `SET`/`SET LOCAL client_min_messages` itself just to
 quiet its own NOTICEs (e.g. from a `%TYPE` conversion or an intentional
 no-op `GRANT`) — it's redundant at best, and at worst *worse* than doing
 nothing: an unconditional `SET LOCAL ... = WARNING` unconditionally lowers
