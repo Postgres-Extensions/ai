@@ -83,8 +83,9 @@ Because Postgres already does this, an install script (`sql/*.sql`,
 quiet its own NOTICEs (e.g. from a `%TYPE` conversion or an intentional
 no-op `GRANT`) — it's redundant at best, and at worst *worse* than doing
 nothing: an unconditional `SET LOCAL ... = WARNING` unconditionally lowers
-a caller's stricter setting for the duration of the script, rather than
-only raising to it like Postgres's own mechanism does.
+a caller's stricter setting until the end of the caller's
+transaction, rather than only raising to it like Postgres's own mechanism
+does.
 
 This has already been fixed and regressed more than once — fixed in
 [cat_tools#26](https://github.com/Postgres-Extensions/cat_tools/pull/26),

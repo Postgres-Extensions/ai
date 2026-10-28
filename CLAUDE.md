@@ -365,23 +365,34 @@ in the rare event a client connects immediately is a reasonable design; a
 mechanism that pays that same cost on every upgrade because it was built
 as if concurrent access were the normal case is not.
 
-## Session state in create/update scripts must be reverted explicitly
+## Session state in create/update scripts: `SET LOCAL`, and set it back with `SET LOCAL`
 
-A `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script can't assume
-it's alone in its transaction, so it can't rely on `SET LOCAL` to undo a
-session-state change when the script ends. Confirmed by direct testing:
-`SET LOCAL` reverts at the end of the *enclosing transaction*, not the
-script — if something else runs afterward in that same transaction
-(another extension installed in the same transaction, a migration tool
-batching several DDL statements), it inherits the change.
+Inside a `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script, change
+settings only with `SET LOCAL`, never a plain `SET`. If the script changes
+a setting Postgres may not have saved for it (`statement_timeout`, etc.),
+read the value first and set it back with `SET LOCAL` before the script
+ends. That is harmless for settings Postgres did save.
 
-If a script needs to change session state (`search_path`,
-`statement_timeout`, etc.), save the prior value and set it back
-explicitly before the script ends — don't lean on `SET LOCAL`'s revert
-to do that. (`client_min_messages` is the one exception: Postgres itself
-already manages it for the duration of an install/update script — see
-"Don't set `client_min_messages` inside an extension install script" in
-`CODE_STYLE.md`.)
+Postgres runs each script in its own GUC nest level. It saves the caller's
+`search_path` (always) and `client_min_messages` (only when the caller is
+below `WARNING`), sets them to `<target schema>, pg_temp` and `warning`,
+and restores the saved values when the script ends.
+
+- A plain `SET` of a saved setting overrides that restore, so the script's
+  value leaks to the caller.
+- `SET LOCAL` of a saved setting leaves the restore in place, so it ends
+  with the script.
+- `SET LOCAL` of a setting Postgres did not save lasts until the end of
+  the *enclosing transaction*, so anything later in that transaction
+  inherits it.
+- A value read inside the script is Postgres's temporary one for a saved
+  setting, not the caller's. Saving it and plain-`SET`ting it back leaves
+  the caller with `<schema>, pg_temp` as `search_path`.
+
+Checked against `execute_extension_script()` in `extension.c` and
+`push_old_value()`/`AtEOXact_GUC()` in `guc.c`, and tested on PG12 and
+PG17. (For `client_min_messages` see "Don't set `client_min_messages`
+inside an extension install script" in `CODE_STYLE.md`.)
 
 ## RAISE: follow Postgres's own error-message style guide
 
