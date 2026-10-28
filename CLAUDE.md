@@ -3,6 +3,10 @@
 This file provides guidance to Claude Code (and other AI agents) working
 in Postgres-Extensions repos.
 
+Code and comment style (imported):
+
+@CODE_STYLE.md
+
 ## First: make sure a local checkout exists
 
 If you reached this file via
@@ -105,8 +109,8 @@ context automatically, whereas a link is only followed if the agent
 decides to open it. The import fails silently when the file is missing,
 which is why the fallback paragraph is required.
 
-Optionally also point at `../ai/PR.md` and `../ai/CODE_STYLE.md` where
-the repo's own docs discuss PRs or comment style.
+Optionally also point at `../ai/PR.md` where the repo's own docs discuss
+PRs.
 
 ## Related docs in this repo
 
