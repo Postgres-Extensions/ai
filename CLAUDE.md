@@ -373,14 +373,14 @@ Postgres doesn't save (`statement_timeout`, etc.), also read the value
 first and set it back with `SET LOCAL` before the script ends; for a
 setting Postgres does save, that set-back is unnecessary and harmless.
 
-Postgres runs each script in its own GUC nest level. It saves the caller's
-`search_path` (always) and `client_min_messages` (only when the caller is
-below `WARNING`), sets them to `<target schema>, pg_temp` and `warning`,
-and restores the saved values when the script ends. See
-`execute_extension_script()` in PostgreSQL's
-`src/backend/commands/extension.c`. For `client_min_messages` see "Don't
-set `client_min_messages` inside an extension install script" in
-`CODE_STYLE.md`.
+Postgres runs each script in its own GUC nest level. It saves a few
+settings, some only conditionally (`search_path` always,
+`client_min_messages` only when the caller is below `WARNING`), sets
+temporary values for them, and restores the saved values when the script
+ends. See `execute_extension_script()` in PostgreSQL's
+`src/backend/commands/extension.c` for the full list. For
+`client_min_messages` see "Don't set `client_min_messages` inside an
+extension install script" in `CODE_STYLE.md`.
 
 - A plain `SET` of a saved setting overrides that restore, so the script's
   value leaks to the caller.
@@ -389,13 +389,12 @@ set `client_min_messages` inside an extension install script" in
   inherits it.
 - A value read inside the script is Postgres's temporary one for a saved
   setting, not the caller's. Saving it and plain-`SET`ting it back leaves
-  the caller with `<schema>, pg_temp` as `search_path`.
+  the caller with the script's temporary `search_path`.
 
 [trunklet's test/helpers/update_with_data.sql](https://github.com/Postgres-Extensions/trunklet/blob/master/test/helpers/update_with_data.sql)
 is an example test that fails if `ALTER EXTENSION ... UPDATE` leaves any of
 the caller's settings changed. It doesn't catch a `SET LOCAL` of a setting
-the server didn't save, because that change only lasts until the end of the
-enclosing transaction.
+the server didn't save.
 
 ## RAISE: follow Postgres's own error-message style guide
 
