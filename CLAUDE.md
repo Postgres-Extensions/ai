@@ -394,6 +394,16 @@ Checked against `execute_extension_script()` in `extension.c` and
 PG17. (For `client_min_messages` see "Don't set `client_min_messages`
 inside an extension install script" in `CODE_STYLE.md`.)
 
+For an example test, see
+[trunklet's test/helpers/update_with_data.sql](https://github.com/Postgres-Extensions/trunklet/blob/master/test/helpers/update_with_data.sql).
+It records `search_path` and `client_min_messages` (with `set_config`) before
+`ALTER EXTENSION ... UPDATE` and fails if either has changed afterwards. It
+resets `client_min_messages` first, so a value the old version's install
+script left raised can't hide the update script doing the same. It runs in
+autocommit, so it catches a leak that outlives the script's transaction (a
+plain `SET`), but not a `SET LOCAL` of a setting Postgres did not save, which
+lasts only until the transaction ends.
+
 ## RAISE: follow Postgres's own error-message style guide
 
 Errors raised to a user should follow the PostgreSQL project's own
