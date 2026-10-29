@@ -3,6 +3,10 @@
 This file provides guidance to Claude Code (and other AI agents) working
 in Postgres-Extensions repos.
 
+Code and comment style (imported):
+
+@CODE_STYLE.md
+
 ## First: make sure a local checkout exists
 
 If you reached this file via
@@ -105,8 +109,8 @@ context automatically, whereas a link is only followed if the agent
 decides to open it. The import fails silently when the file is missing,
 which is why the fallback paragraph is required.
 
-Optionally also point at `../ai/PR.md` and `../ai/CODE_STYLE.md` where
-the repo's own docs discuss PRs or comment style.
+Optionally also point at `../ai/PR.md` where the repo's own docs discuss
+PRs.
 
 ## Related docs in this repo
 
@@ -114,6 +118,8 @@ the repo's own docs discuss PRs or comment style.
   authority, fork workflow, force-push policy, etc.)
 - [CODE_STYLE.md](./CODE_STYLE.md) — comment conventions and PR/issue
   reference format
+- [EXTENSION_SCRIPTS.md](./EXTENSION_SCRIPTS.md) — changing settings inside
+  extension install/update scripts
 - [test/CLAUDE.md](./test/CLAUDE.md) — extension testing conventions
   (schema/search_path isolation)
 - [RELEASE.md](./RELEASE.md) — shared release process for repos that
@@ -365,23 +371,11 @@ in the rare event a client connects immediately is a reasonable design; a
 mechanism that pays that same cost on every upgrade because it was built
 as if concurrent access were the normal case is not.
 
-## Session state in create/update scripts must be reverted explicitly
+## Changing settings in create/update scripts
 
-A `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script can't assume
-it's alone in its transaction, so it can't rely on `SET LOCAL` to undo a
-session-state change when the script ends. Confirmed by direct testing:
-`SET LOCAL` reverts at the end of the *enclosing transaction*, not the
-script — if something else runs afterward in that same transaction
-(another extension installed in the same transaction, a migration tool
-batching several DDL statements), it inherits the change.
-
-If a script needs to change session state (`search_path`,
-`statement_timeout`, etc.), save the prior value and set it back
-explicitly before the script ends — don't lean on `SET LOCAL`'s revert
-to do that. (`client_min_messages` is the one exception: Postgres itself
-already manages it for the duration of an install/update script — see
-"Don't set `client_min_messages` inside an extension install script" in
-`CODE_STYLE.md`.)
+If an extension install/update script needs to change a setting (`SET`,
+`set_config()`, etc.), you *MUST* read [`../ai/EXTENSION_SCRIPTS.md`](./EXTENSION_SCRIPTS.md)
+first.
 
 ## RAISE: follow Postgres's own error-message style guide
 
