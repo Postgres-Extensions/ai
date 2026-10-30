@@ -21,6 +21,10 @@ ends. See `execute_extension_script()` in PostgreSQL's
 - A value read inside the script is Postgres's temporary one for a saved
   setting, not the caller's. Saving it and plain-`SET`ting it back leaves
   the caller with the script's temporary `search_path`.
+- Set a value back with `set_config(name, value, true)`, the function form
+  of `SET LOCAL`, not `format('SET LOCAL %I = %L', name, value)`: `%L`
+  makes a list setting such as `search_path` a single quoted name, so
+  `public, pg_temp` comes back as `"public, pg_temp"`.
 
 [trunklet's test/helpers/update_with_data.sql](https://github.com/Postgres-Extensions/trunklet/blob/master/test/helpers/update_with_data.sql)
 is an example test that fails if `ALTER EXTENSION ... UPDATE` leaves any of
