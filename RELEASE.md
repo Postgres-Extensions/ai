@@ -254,6 +254,11 @@ one):
 
 - [ ] Working tree must be clean — `make tag` aborts with "Untracked
       changes!" on a dirty tree.
+      - If `git status` shows ` M .vendor/linter`, run `git submodule
+        update --init` and re-check. The submodule's checked-out commit
+        differs from the one the repo pins (typically after a pin bump
+        merged), and the command checks out the pinned commit, fetching it
+        first if needed.
 - [ ] Make sure `origin` in your checkout points at the canonical upstream
       repo (`Postgres-Extensions/<repo>`), **not** a personal fork —
       `make tag`/`make dist` push to `origin` by default, and a tag pushed
