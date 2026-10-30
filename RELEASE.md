@@ -174,9 +174,8 @@ the distribution's is moving:
     release — see step 4's explicit instruction to revert its
     `default_version` back to that previous version (not leave it at
     `stable`, and not move it to the new distribution version either).
-    Its `--stable.sql` update script stays exactly as it is; step 6's
-    `.gitattributes`/`export-ignore` note keeps it out of the release
-    archive.
+    Its `--stable.sql` update script is removed in step 4 (a release
+    must contain no `--stable` file).
 - [ ] Decide whether to commit the generated versioned install script for
       this release. Default to committing it — for a small extension the
       storage cost is negligible, and it's the only thing that makes "can I
@@ -212,17 +211,19 @@ one):
       `ALTER EXTENSION ... UPDATE` actually reaches the new version from
       the previous one, on multiple PostgreSQL majors. `git mv` the
       `--stable` update script to
-      `sql/<ext>--<last-released-version>--<new-version>.sql[.in]`.
+      `sql/<ext>--<last-released-version>--<new-version>.sql[.in]`. Also
+      `git rm` its `sql/<ext>--stable.sql` install script if it's tracked.
 - [ ] **Not** moving this release (its `--stable.sql` update script is
       still a genuine no-op): set `default_version` in `<ext>.control`
       back to its own last real released version — **not** left at
       `stable` (a tagged release must never have any extension's
       `default_version` be the literal string `stable`), and **not**
       moved to the new distribution version either, since nothing about
-      this extension actually changed. Leave its `--stable.sql` update
-      script alone (still named `--stable`, not renamed) — step 6's
-      `.gitattributes`/`export-ignore` note keeps it out of the release
-      archive despite still existing on disk/in git.
+      this extension actually changed. `git rm` its `--stable.sql` update
+      script, but only after confirming it holds nothing but the
+      placeholder comment — a script with real content is a real update
+      and must be `git mv`'d (the moving case above), never removed. Also
+      `git rm` its `sql/<ext>--stable.sql` install script if it's tracked.
 - [ ] Bump the version in `META.in.json` — the top-level `version` (always,
       the distribution version) and each moving extension's entry under
       `provides` (leave an unchanged extension's entry alone). Do **not**
@@ -236,8 +237,8 @@ one):
 - [ ] Rename the changelog's top `STABLE`/`stable` heading to the new
       (distribution) version number, matching its dashes/underline length
       if the format uses one.
-- [ ] Commit the version bump(s) + changelog + renamed update script(s)
-      together in one commit.
+- [ ] Commit the version bump(s) + changelog + renamed and removed
+      `--stable` script(s) together in one commit.
 
 ## 5. Verify
 
@@ -262,6 +263,12 @@ one):
       pgxntool 2.2.0 after exactly this mistake shipped a tag to a fork on
       a real release — check `git remote -v` rather than assuming the
       canonical remote is named `upstream`).
+- [ ] Before `make tag`, confirm `git ls-files '*--stable*'` prints
+      nothing. The tag must contain no `--stable` file, and a leftover one
+      may be a real update script whose step 4 rename was missed — which
+      would silently drop that update path from the release. If anything
+      prints, go back to step 4: `git mv` it if it has real content,
+      `git rm` it if it's only the placeholder comment.
 - [ ] `make tag` — creates a git tag named exactly the (distribution)
       version, **unprefixed** (e.g. `1.0.0`, never `v1.0.0`), taken from
       `PGXNVERSION`, and pushes it to `origin` (or `$(PGXN_REMOTE)`).
@@ -277,17 +284,6 @@ one):
       included — if `.gitattributes` exists it must be committed, or `dist`
       aborts (`git archive` only honors `export-ignore` for committed
       files). `make forcedist` = `forcetag` + `dist`.
-      - For a multi-extension distribution, any extension not moving this
-        release still has its `sql/<ext>--<version>--stable.sql` update
-        script sitting in the tree (step 4 left it un-renamed). A
-        `.gitattributes` rule marking that pattern `export-ignore` keeps
-        it out of the archive — a tagged release must never ship a file
-        only reachable via the `stable` pseudo-version, since nothing in
-        that release actually has `default_version = stable`. A blanket
-        glob (e.g. `sql/*--stable.sql export-ignore`) is safe here despite
-        matching across the update script's own `--`: by archive time, any
-        extension that *did* move already had its file renamed away from
-        that exact name, so only genuine no-ops can still match it.
 
 ## 7. Upload to PGXN (manual)
 
@@ -319,6 +315,10 @@ one):
       extension actually ships at coming out of this release — the new
       one for an extension that moved, the same old one for an extension
       that didn't.
+- [ ] The `sql/<ext>--stable.sql` install script step 4 removed (if it was
+      tracked) needs no re-seeding: `make` regenerates it once
+      `default_version` is back to `stable`. Gitignore it rather than
+      committing it — see "Version-specific SQL files" in `CLAUDE.md`.
 - [ ] Open a fresh top `STABLE`/`stable` section in the changelog (one per
       distribution, not per extension).
 - [ ] Keep this PR's description small — "Reset version back to `stable`
