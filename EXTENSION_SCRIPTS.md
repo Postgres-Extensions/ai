@@ -2,8 +2,9 @@
 
 Inside a `CREATE EXTENSION`/`ALTER EXTENSION ... UPDATE` script, change
 settings only with `SET LOCAL`, never a plain `SET`. Also read the
-setting's value first and set it back with `SET LOCAL` before the script
-ends; for a setting Postgres saves, that set-back is harmless.
+setting's value first and set it back with `SET LOCAL`
+(via `set_config(name, value, true)`, see below) before the script ends;
+for a setting Postgres saves, that set-back is harmless.
 
 Postgres runs each script in its own GUC nest level. It saves a few
 settings, some only conditionally (`search_path` always,
@@ -21,6 +22,13 @@ ends. See `execute_extension_script()` in PostgreSQL's
 - A value read inside the script is Postgres's temporary one for a saved
   setting, not the caller's. Saving it and plain-`SET`ting it back leaves
   the caller with the script's temporary `search_path`.
+- Set a value back with `set_config(name, value, true)`, the function
+  form of `SET LOCAL`, not `format('SET LOCAL %I = %L', name, value)`:
+  `%L` makes a list setting such as `search_path` a single quoted name,
+  so `public, pg_temp` comes back as `"public, pg_temp"`. `set_config()`
+  returns a row that `CREATE EXTENSION` discards but a `\i` harness
+  prints, so discard the harness output (for example `\o /dev/null`)
+  around the `\i`.
 
 [trunklet's test/helpers/update_with_data.sql](https://github.com/Postgres-Extensions/trunklet/blob/master/test/helpers/update_with_data.sql)
 is an example test that fails if `ALTER EXTENSION ... UPDATE` leaves any of
