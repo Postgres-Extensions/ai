@@ -112,6 +112,19 @@ comment that re-lists what the group's assertions check (the test
 bodies already say that). If a comment would only repeat the
 assertions' descriptions, drop it.
 
+**When a test file pulls in an assertion-emitting helper with `\i`, give
+that helper its own `+ N` line in `plan()`**, where N is the number of
+assertions the helper emits, labelled with the helper's path:
+
+```sql
+SELECT plan(
+  3    -- setup
+  + 5  -- queries
+  + 2  -- helpers/check_roles.sql
+  + 1  -- finish.sql
+);
+```
+
 ## Tests run as superuser by default — most extensions won't, in production
 
 `pg_regress`/`installcheck` runs the whole suite as superuser by
