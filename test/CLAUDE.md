@@ -103,6 +103,15 @@ For arrays: `unnest()` into rows and compare with
 where `is()`'s exact array equality is stricter than what's actually
 being asserted.
 
+## Keep `plan()` terse
+
+**Write `plan()` as a few lines that sum the assertion count, not an
+inventory of the assertions.** Group by phase or topic with a short
+label each; never one `+ N` line per assertion, and never a trailing
+comment that re-lists what the group's assertions check (the test
+bodies already say that). If a comment would only repeat the
+assertions' descriptions, drop it.
+
 ## Tests run as superuser by default — most extensions won't, in production
 
 `pg_regress`/`installcheck` runs the whole suite as superuser by
