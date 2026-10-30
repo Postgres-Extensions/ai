@@ -103,6 +103,32 @@ For arrays: `unnest()` into rows and compare with
 where `is()`'s exact array equality is stricter than what's actually
 being asserted.
 
+## Keep `plan()` terse
+
+**Split `plan()` into a few lines so a reader can see how the counts map
+onto the layout of the tests in the file.** Group by phase or topic with
+a short label each. Lines need not match test sections 1-1; the point is
+that each number can be traced to the tests it covers.
+
+- Mirror the split in the file: a small separation (an extra blank line)
+  between related groups of tests, and a comment header for a major new
+  section.
+- Never one `+ N` line per assertion, and never a trailing comment that
+  re-lists what the group's assertions check (the test bodies already say
+  that).
+- **When a test file pulls in an assertion-emitting helper with `\i`, give
+  that helper its own `+ N` line**, where N is the number of assertions
+  the helper emits, labelled with the helper's path.
+
+```sql
+SELECT plan(
+  3    -- setup
+  + 5  -- queries
+  + 2  -- helpers/check_roles.sql
+  + 1  -- finish.sql
+);
+```
+
 ## Tests run as superuser by default — most extensions won't, in production
 
 `pg_regress`/`installcheck` runs the whole suite as superuser by
