@@ -102,6 +102,18 @@ still matches what that version actually shipped:
 
 ## 2. Pre-release checks
 
+- [ ] **The vendored pgxntool is the latest release.** Run this before any
+      version-bump or changelog commit:
+      ```bash
+      vendored=$(head -1 pgxntool/HISTORY.asc)
+      latest=$(git ls-remote --tags --refs https://github.com/Postgres-Extensions/pgxntool.git \
+               | sed 's|.*refs/tags/||' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+      [ "$vendored" = "$latest" ] && echo "up to date ($vendored)" || echo "NEWER: $vendored -> $latest"
+      ```
+      (The `grep` drops pgxntool's non-version `release` tag.) If a newer
+      release exists, stop: update pgxntool in its own PR, wait for it to
+      merge, then restart this checklist. Never fold the update into the
+      release PR.
 - [ ] Open issues/PRs intended for this release reviewed, merged, or
       explicitly deferred.
 - [ ] CI green on all supported PostgreSQL versions.
