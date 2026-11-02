@@ -123,7 +123,7 @@ that each number can be traced to the tests it covers.
 ```sql
 SELECT plan(
   3    -- setup
-  + 5  -- queries
+  + 5  -- view columns
   + 2  -- helpers/check_roles.sql
   + 1  -- finish.sql
 );
