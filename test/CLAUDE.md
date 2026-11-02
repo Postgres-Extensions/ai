@@ -113,8 +113,8 @@ that each number can be traced to the tests it covers.
 - Mirror the split in the file: a small separation (an extra blank line)
   between related groups of tests, and a comment header for a major new
   section.
-- Never one `+ N` line per assertion, and never a trailing comment that
-  re-lists what the group's assertions check (the test bodies already say
+- Almost never one `+ N` line per assertion, and almost never a trailing
+  comment that re-lists what the group's assertions check (the test bodies already say
   that).
 - **When a test file pulls in an assertion-emitting helper with `\i`, give
   that helper its own `+ N` line**, where N is the number of assertions
