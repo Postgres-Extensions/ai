@@ -103,6 +103,18 @@ For arrays: `unnest()` into rows and compare with
 where `is()`'s exact array equality is stricter than what's actually
 being asserted.
 
+## Reuse state already in effect instead of re-establishing it
+
+**Order test cases so state set up for one serves the next, rather than
+adding another setup/teardown cycle.** Needless state manipulation is
+extra noise and extra places for a test to go wrong.
+
+Example: a case that must fail only while a precondition is in effect
+(a disabled trigger, a deferred constraint) runs while the precondition
+is still active, ahead of the passing case that needs it torn down.
+Running it afterward forces re-establishing the precondition just to
+test it.
+
 ## Keep `plan()` terse
 
 **Split `plan()` into a few lines so a reader can see how the counts map
