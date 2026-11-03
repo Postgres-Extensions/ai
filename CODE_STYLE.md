@@ -72,6 +72,12 @@ where this was done and then reverted).
 Do caller sanity checks (argument validation) before taking any
 meaningful action, unless there is a good reason to wait.
 
+## Prefer `EXISTS` over `count()` for presence checks
+
+Use `EXISTS`/`NOT EXISTS` (in pgTap, `is_empty()`/`isnt_empty()`) when
+only whether rows exist matters; use `count()` only when the exact number
+is what's being asserted. `EXISTS` can stop at the first row.
+
 ## Closing non-indentable blocks
 
 When closing a code block that cannot be indented to show its nesting
