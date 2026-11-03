@@ -313,6 +313,14 @@ This is a real tradeoff, not an absolute rule — needing real isolation to
 mean anything (e.g. a dedicated cluster for one extension's install path)
 is one good reason to put a dimension in CI instead, not the only one.
 
+### Merging pgxntool sync PRs
+
+Merge pgxntool sync PRs with "Create a merge commit", never squash: a squash drops the subtree stamp commit (`git-subtree-dir`/`git-subtree-split`) that the next `git subtree pull` uses as its merge base, so the next sync conflicts on every file pgxntool changed.
+
+This repo prunes pgxntool's dev-only `pgxntool/.claude` and `pgxntool/.github`: the `git rm -r` of them goes in the same merge commit as the pull. A later pull that hits a modify/delete conflict on a pruned path is resolved with `git rm <path>`.
+
+To re-anchor after squash-merged syncs, and the rest of the steps, see https://github.com/Postgres-Extensions/pgxntool/issues/138#issuecomment-6591460443. That recipe is a workaround until pgxntool#138 lands.
+
 ### Version-specific SQL files
 
 pgxntool's own `README.asc` ("Version-Specific SQL Files") already covers
