@@ -69,9 +69,8 @@ where this was done and then reverted).
 
 ## Validate before acting
 
-Check a function's caller-supplied arguments and its preconditions
-before taking any meaningful action — before any side effect — unless
-there is a good reason to wait.
+Do caller sanity checks (argument validation) before taking any
+meaningful action, unless there is a good reason to wait.
 
 ## Closing non-indentable blocks
 
