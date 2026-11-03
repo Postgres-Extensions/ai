@@ -67,6 +67,11 @@ protection it exists to provide, not simplifying dead weight (see
 [Postgres-Extensions/test_factory#18](https://github.com/Postgres-Extensions/test_factory/pull/18),
 where this was done and then reverted).
 
+## Validate before acting
+
+Do caller sanity checks (argument validation) before taking any
+meaningful action, unless there is a good reason to wait.
+
 ## Closing non-indentable blocks
 
 When closing a code block that cannot be indented to show its nesting
