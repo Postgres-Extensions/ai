@@ -43,6 +43,10 @@ upstream's own PR list, sitting forgotten for weeks.
 - Exception seen in practice: a release workflow's CI-trigger-only empty PR
   exists solely to run CI and is closed once CI passes, never merged.
 
+## Open every PR as a draft
+
+Always open PRs as drafts: pass `--draft` to `gh pr create`. Only a human marks a PR ready for review, and the draft state is how a PR stays out of reviewers' queues until then — never run `gh pr ready` yourself, and never open a PR as non-draft because it "looks finished".
+
 ## Fork vs. direct-to-upstream
 
 **Branch location and PR location are two different questions — don't
@@ -53,7 +57,7 @@ conflate them (see "A PR is not a branch" above).**
   to be on the fork creates a stray branch and doesn't update the PR.
 - PR: its URL is always `github.com/Postgres-Extensions/<repo>/pull/<n>`,
   even when the branch lives on your fork. Create it with `gh pr create
-  --repo <org>/<repo> --base <default-branch> --head
+  --repo <org>/<repo> --draft --base <default-branch> --head
   <fork-owner>:<branch>` — don't rely on `gh pr create`'s default target,
   which (run from a fork checkout without `--repo`) puts the PR at a
   fork-owner URL instead. That's the actual bug seen in practice: two PRs
