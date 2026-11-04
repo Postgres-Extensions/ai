@@ -72,6 +72,16 @@ where this was done and then reverted).
 Do caller sanity checks (argument validation) before taking any
 meaningful action, unless there is a good reason to wait.
 
+## Name make-target flavors `<target>--<flavor>`
+
+Name a flavor of a make target `<target>--<flavor>` (`lint--update`,
+`test--update`), and use that name in docs and scripts. A single-dash
+synonym (`update-lint`) may exist for convenience, but is never the
+canonical name; a pre-existing single-dash target becomes a synonym when
+it is renamed to the `--` form (e.g. `test-update` for `test--update`).
+As much as reasonable, CI invokes the same target a human would; where it
+differs, comment why.
+
 ## Prefer `EXISTS` over `count()` for presence checks
 
 Use `EXISTS`/`NOT EXISTS` (in pgTap, `is_empty()`/`isnt_empty()`) when
