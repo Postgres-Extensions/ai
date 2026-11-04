@@ -43,6 +43,13 @@ from scratch under time pressure:
   - If the top section is a real version number (nothing has changed since
     the last release yet), insert a new `STABLE`/`stable` section above it
     with your entry.
+  - A backwards-incompatible change (a removed or renamed function or
+    column, a changed behavior, a raised dependency minimum) goes at the
+    **top** of its section, ahead of every other entry, written as the
+    break itself — what changed and who it affects — not as update
+    directions. Any special step needed to update (anything beyond
+    `ALTER EXTENSION ... UPDATE`) goes there too, right after the
+    breaks. Don't bury either among ordinary entries.
 - If a PR changes an extension's SQL, also maintain the update script from
   the last released version to `stable`:
   `sql/<ext>--<last-released-version>--stable.sql[.in]`. Step 8 seeds this
@@ -246,6 +253,8 @@ one):
 - [ ] Advance `release_status` in `META.in.json` as appropriate (`unstable`
       → `testing` → `stable`). This is one value for the whole
       distribution, not per extension.
+- [ ] The changelog section being released lists every backwards-incompatible
+      change and special update step first (see "Ongoing development").
 - [ ] Rename the changelog's top `STABLE`/`stable` heading to the new
       (distribution) version number, matching its dashes/underline length
       if the format uses one.
