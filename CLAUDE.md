@@ -7,6 +7,10 @@ Code and comment style (imported):
 
 @CODE_STYLE.md
 
+PR, commit, and git-process conventions (imported):
+
+@PR.md
+
 ## First: make sure a local checkout exists
 
 If you reached this file via
@@ -108,9 +112,6 @@ Use an `@` import rather than a plain link: it loads the file into
 context automatically, whereas a link is only followed if the agent
 decides to open it. The import fails silently when the file is missing,
 which is why the fallback paragraph is required.
-
-Optionally also point at `../ai/PR.md` where the repo's own docs discuss
-PRs.
 
 ## Related docs in this repo
 
