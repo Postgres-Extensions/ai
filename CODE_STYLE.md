@@ -88,6 +88,12 @@ Use `EXISTS`/`NOT EXISTS` (in pgTap, `is_empty()`/`isnt_empty()`) when
 only whether rows exist matters; use `count()` only when the exact number
 is what's being asserted. `EXISTS` can stop at the first row.
 
+## Multi-line SQL statement terminators
+
+In a multi-line SQL statement, put the terminating `;` on its own line, or
+end with a closing line like `);`, so it is clear where a new statement
+starts.
+
 ## Closing non-indentable blocks
 
 When closing a code block that cannot be indented to show its nesting
