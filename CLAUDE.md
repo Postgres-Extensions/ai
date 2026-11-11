@@ -386,6 +386,10 @@ If an extension install/update script needs to change a setting (`SET`,
 `set_config()`, etc.), you *MUST* read [`../ai/EXTENSION_SCRIPTS.md`](./EXTENSION_SCRIPTS.md)
 first.
 
+## Don't assume the connecting role is a true superuser
+
+Managed services such as RDS have no true superuser, so neither tests nor design recommendations may rely on one. Check any proposed catalog DML (e.g. on `pg_init_privs`) or catalog row locking against a non-superuser role on a managed service before recommending it.
+
 ## RAISE: follow Postgres's own error-message style guide
 
 Errors raised to a user should follow the PostgreSQL project's own
